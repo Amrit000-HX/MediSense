@@ -1,53 +1,20 @@
-import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router";
+import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Activity,
-  FileText,
-  TrendingUp,
-  Calendar,
-  Upload,
-  Mic,
-  BarChart3,
-  Heart,
-  Brain,
-  Clock,
-  Pencil,
-  Phone,
-  MapPin,
-} from "lucide-react";
+import { Heart, Activity, Calendar, Pill, Pencil, FileText, Brain, Map, Phone, Clock, Star, ChevronRight, User, TrendingUp, AlertCircle, CheckCircle, Upload, Mic, Link, BarChart3, Bell, MapPin, Navigation } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from "../components/ui/dialog";
-import { getStoredUser } from "../api/auth";
+import { Input } from "../components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../components/ui/dialog";
+import { getHealthMetrics, saveHealthMetrics, getAppointments, getSavedHealthMetrics, getMatchingDoctors, getNearbyDoctors, addSavedAppointment, getMedicineRecommendations, requestNotificationPermission, checkAndNotifyReminders, saveUserLocation, getUserLocation, DEFAULT_METRICS, type HealthMetric, type Appointment, type Doctor, type Medicine } from "../api/dashboard";
 import { getReports, uploadReport, analyzeReport, type ReportItem, type ReportAnalysisResult } from "../api/reports";
-import {
-  getHealthMetrics,
-  getAppointments,
-  getSavedHealthMetrics,
-  saveHealthMetrics,
-  getMatchingDoctors,
-  addSavedAppointment,
-  DEFAULT_METRICS,
-  type HealthMetric,
-  type Appointment,
-  type Doctor,
-} from "../api/dashboard";
+import { MiniDashboardGPS } from "../components/ui/mini-dashboard-gps";
 
 const METRICS_REF_ID = "dashboard-health-metrics";
 
 export function DashboardPage() {
   const { t } = useTranslation();
-  const user = getStoredUser();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const [recentReports, setRecentReports] = useState<ReportItem[]>([]);
   const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>(() => getSavedHealthMetrics());
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
@@ -65,6 +32,11 @@ export function DashboardPage() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [editingMetrics, setEditingMetrics] = useState<HealthMetric[]>([]);
+  const [useGPS, setUseGPS] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
+  const [medicineModalOpen, setMedicineModalOpen] = useState(false);
+  const [medicineRecommendations, setMedicineRecommendations] = useState<Medicine[]>([]);
+  const [medicineCondition, setMedicineCondition] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const metricsSectionRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +44,15 @@ export function DashboardPage() {
     getReports().then(setRecentReports).catch(() => {});
     setHealthMetrics(getSavedHealthMetrics());
     getAppointments().then(setUpcomingAppointments).catch(() => {});
+    // Request notification permission on mount
+    requestNotificationPermission();
+    // Check for reminders every minute
+    checkAndNotifyReminders();
+    const reminderInterval = setInterval(checkAndNotifyReminders, 60000);
+    // Load saved user location
+    const savedLocation = getUserLocation();
+    if (savedLocation) setUserLocation(savedLocation);
+    return () => clearInterval(reminderInterval);
   }, []);
 
   const openMetricsModal = () => {
@@ -105,12 +86,51 @@ export function DashboardPage() {
     setScheduleModalOpen(true);
   };
 
-  const searchDoctors = () => {
+  const searchDoctors = async () => {
     const age = parseInt(scheduleAge, 10) || 0;
-    const list = getMatchingDoctors(scheduleLocation, age);
-    setMatchingDoctors(list);
-    setSelectedDoctor(null);
-    setSelectedSlot("");
+    if (useGPS && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          saveUserLocation(latitude, longitude);
+          setUserLocation({ lat: latitude, lon: longitude });
+          const nearby = await getNearbyDoctors(latitude, longitude, age, 50);
+          setMatchingDoctors(nearby);
+          setSelectedDoctor(null);
+          setSelectedSlot("");
+        },
+        () => {
+          // Fallback to location search if GPS fails
+          const list = getMatchingDoctors(scheduleLocation, age);
+          setMatchingDoctors(list);
+          setSelectedDoctor(null);
+          setSelectedSlot("");
+        }
+      );
+    } else {
+      const list = getMatchingDoctors(scheduleLocation, age);
+      setMatchingDoctors(list);
+      setSelectedDoctor(null);
+      setSelectedSlot("");
+    }
+  };
+
+  const openMedicineModal = () => {
+    const weightMetric = healthMetrics.find((m) => m.label === "Weight");
+    const weight = weightMetric ? parseFloat(weightMetric.value.replace(/[^0-9.]/g, "")) || 0 : 0;
+    // Try to get age from scheduleAge first, otherwise prompt
+    let age = parseInt(scheduleAge, 10) || 0;
+    if (age === 0) {
+      const ageInput = prompt("Please enter your age:");
+      age = ageInput ? parseInt(ageInput, 10) || 0 : 0;
+    }
+    if (age > 0 && weight > 0) {
+      const medicines = getMedicineRecommendations(age, weight, medicineCondition || undefined);
+      setMedicineRecommendations(medicines);
+      setMedicineModalOpen(true);
+    } else {
+      alert("Please enter your age and weight. Weight should be entered in health metrics (e.g., 70 kg).");
+    }
   };
 
   const confirmAppointment = () => {
@@ -147,46 +167,70 @@ export function DashboardPage() {
     fileInputRef.current?.click();
   };
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("File selected:", e.target.files?.[0]);
+    console.log("File type:", e.target.files?.[0]?.type);
+    console.log("File name:", e.target.files?.[0]?.name);
+    console.log("File size:", e.target.files?.[0]?.size);
+    
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log("No file selected");
+      return;
+    }
+    
     const validTypes = [".pdf", ".ppt", ".pptx", ".txt", ".doc", ".docx"];
     const validImages = "image/jpeg,image/png,image/gif,image/webp";
     const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
     const isImage = file.type.startsWith("image/");
+    
+    console.log("File extension:", ext);
+    console.log("Is image:", isImage);
+    console.log("Valid types check:", validTypes.includes(ext), !isImage);
+    
     if (!validTypes.includes(ext) && !isImage) {
+      console.log("Invalid file type");
       setUploadError("Please upload a PDF, Word (.doc, .docx), PPT, PPTX, image, or TXT file.");
       e.target.value = "";
       return;
     }
+    
+    console.log("File validation passed, starting upload...");
     setUploadError(null);
     setAnalysisError(null);
     setLastAnalysis(null);
     setUploading(true);
+    
     try {
+      console.log("Calling uploadReport...");
       const result = await uploadReport(file);
+      console.log("Upload result:", result);
       const newReport: ReportItem = { id: result.id, title: result.title, date: "Just now", status: "Analyzing...", color: "blue" };
       setRecentReports((prev) => [newReport, ...prev]);
       setUploading(false);
       e.target.value = "";
-
+      
+      console.log("Starting analysis...");
       setAnalyzingReport(true);
       try {
+        console.log("Calling analyzeReport...");
         const analysis = await analyzeReport(file);
+        console.log("Analysis result:", analysis);
         setLastAnalysis({ reportTitle: result.title, result: analysis });
         setRecentReports((prev) =>
           prev.map((r) => (r.id === result.id ? { ...r, status: analysis.status || "Reviewed", color: "emerald" as const } : r))
         );
-      } catch {
+      } catch (err) {
+        console.error("Analysis error:", err);
         setAnalysisError("Analysis failed. Your report was uploaded; you can try again later.");
         setRecentReports((prev) => prev.map((r) => (r.id === result.id ? { ...r, status: "Pending", color: "blue" as const } : r)));
       } finally {
         setAnalyzingReport(false);
       }
-    } catch {
+    } catch (err) {
+      console.error("Upload error:", err);
       setUploadError("Upload failed. Please check your connection and try again.");
     } finally {
       setUploading(false);
-      e.target.value = "";
     }
   };
 
@@ -242,6 +286,15 @@ export function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* GPS Clinic Finder */}
+        <div className="mb-12">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">🗺️ Find Nearby Clinics</h2>
+            <p className="text-slate-600">Locate the nearest medical facilities and get directions</p>
+          </div>
+          <MiniDashboardGPS />
         </div>
 
         {/* PDF/Report Analysis Result */}
@@ -322,10 +375,20 @@ export function DashboardPage() {
         <div id={METRICS_REF_ID} ref={metricsSectionRef} className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-slate-800">{t("dashboard.yourHealthMetrics")}</h2>
-            <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-700" onClick={openMetricsModal}>
-              <Pencil className="size-4 mr-2" />
-              Edit metrics
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="border-blue-200 text-blue-700" onClick={openMedicineModal}>
+                <Pill className="size-4 mr-2" />
+                Medicine suggestions
+              </Button>
+              <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-700" onClick={openMetricsModal}>
+                <Pencil className="size-4 mr-2" />
+                Edit metrics
+              </Button>
+              <Button variant="outline" size="sm" className="border-purple-200 text-purple-700" onClick={openScheduleModal}>
+                <Calendar className="size-4 mr-2" />
+                Book Appointment
+              </Button>
+            </div>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {healthMetrics.map((metric, index) => {
@@ -363,7 +426,13 @@ export function DashboardPage() {
                   <Label className="col-span-1 text-slate-700">{m.label}</Label>
                   <Input
                     className="col-span-2"
-                    placeholder={m.label === "Blood Pressure" ? "e.g. 120/80" : m.label === "Heart Rate" ? "e.g. 72 bpm" : m.label === "Glucose" ? "e.g. 95 mg/dL" : "e.g. 23.5"}
+                    placeholder={
+                      m.label === "Blood Pressure" ? "e.g. 120/80" :
+                      m.label === "Heart Rate" ? "e.g. 72 bpm" :
+                      m.label === "Glucose" ? "e.g. 95 mg/dL" :
+                      m.label === "Weight" ? "e.g. 70 kg" :
+                      "e.g. 23.5"
+                    }
                     value={m.value}
                     onChange={(e) => setEditingMetrics((prev) => prev.map((mm, j) => (j === i ? { ...mm, value: e.target.value } : mm)))}
                   />
@@ -389,10 +458,25 @@ export function DashboardPage() {
               <DialogDescription>Enter your location and age so we can suggest doctors and consultation times near you.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid gap-2">
-                <Label>Your location (city or area)</Label>
-                <Input placeholder="e.g. New York, Boston, Chicago" value={scheduleLocation} onChange={(e) => setScheduleLocation(e.target.value)} />
+              <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <input
+                  type="checkbox"
+                  id="use-gps"
+                  checked={useGPS}
+                  onChange={(e) => setUseGPS(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="use-gps" className="flex items-center gap-2 cursor-pointer">
+                  <Navigation className="size-4" />
+                  Use GPS to find nearby doctors
+                </Label>
               </div>
+              {!useGPS && (
+                <div className="grid gap-2">
+                  <Label>Your location (city or area)</Label>
+                  <Input placeholder="e.g. New York, Boston, Chicago" value={scheduleLocation} onChange={(e) => setScheduleLocation(e.target.value)} />
+                </div>
+              )}
               <div className="grid gap-2">
                 <Label>Your age</Label>
                 <Input type="number" min="1" max="120" placeholder="e.g. 35" value={scheduleAge} onChange={(e) => setScheduleAge(e.target.value)} />
@@ -402,7 +486,7 @@ export function DashboardPage() {
                 <Input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
               </div>
               <Button onClick={searchDoctors} className="w-full bg-blue-600 hover:bg-blue-700">
-                Find doctors
+                {useGPS ? <><Map className="size-4 mr-2" /> Find nearby doctors</> : "Find doctors"}
               </Button>
             </div>
             {matchingDoctors.length > 0 && (
@@ -412,8 +496,20 @@ export function DashboardPage() {
                   {matchingDoctors.map((doc) => (
                     <Card key={doc.id} className={`cursor-pointer border-2 ${selectedDoctor?.id === doc.id ? "border-emerald-500" : "border-slate-200"}`} onClick={() => { setSelectedDoctor(doc); setSelectedSlot(""); }}>
                       <CardContent className="p-4">
-                        <div className="font-semibold text-slate-800">{doc.name}</div>
-                        <div className="text-sm text-slate-600">{doc.specialty}</div>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="font-semibold text-slate-800">{doc.name}</div>
+                            <div className="text-sm text-slate-600">{doc.specialty}</div>
+                            <div className="text-xs text-emerald-600 mt-1 font-medium">
+                              {doc.ageGroup === "all" ? "All ages" : doc.ageGroup === "pediatric" ? "Pediatric (0-17)" : doc.ageGroup === "adult" ? "Adult (18-59)" : "Senior (60+)"}
+                            </div>
+                          </div>
+                          {doc.distance !== undefined && (
+                            <div className="text-sm font-semibold text-blue-600">
+                              {doc.distance.toFixed(1)} km
+                            </div>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 mt-2 text-sm text-slate-700">
                           <Phone className="size-4" />
                           {doc.contactNo}
@@ -453,6 +549,215 @@ export function DashboardPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Medicine Recommendations Modal */}
+        <Dialog open={medicineModalOpen} onOpenChange={setMedicineModalOpen}>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Pill className="size-5" />
+                Smart Medicine Recommendations
+              </DialogTitle>
+              <DialogDescription>
+                AI-powered suggestions based on your age, weight, and symptoms. Always consult a doctor before taking any medication.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              {/* Enhanced condition input with examples */}
+              <div className="grid gap-3">
+                <Label className="text-base font-medium">Describe your symptoms or condition</Label>
+                <Input
+                  placeholder="e.g. headache, fever, allergy, stomach pain, anxiety, diabetes..."
+                  value={medicineCondition}
+                  onChange={(e) => {
+                    setMedicineCondition(e.target.value);
+                    const weightMetric = healthMetrics.find((m) => m.label === "Weight");
+                    const weight = weightMetric ? parseFloat(weightMetric.value.replace(/[^0-9.]/g, "")) || 0 : 0;
+                    let age = parseInt(scheduleAge, 10) || 0;
+                    if (age === 0) {
+                      const ageInput = prompt("Please enter your age:");
+                      age = ageInput ? parseInt(ageInput, 10) || 0 : 0;
+                    }
+                    if (age > 0 && weight > 0) {
+                      const medicines = getMedicineRecommendations(age, weight, e.target.value || undefined);
+                      setMedicineRecommendations(medicines);
+                    }
+                  }}
+                  className="text-base"
+                />
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="text-slate-500">Try:</span>
+                  {['pain', 'fever', 'allergy', 'cough', 'headache', 'stomach pain', 'anxiety', 'sleep'].map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        setMedicineCondition(term);
+                        const weightMetric = healthMetrics.find((m) => m.label === "Weight");
+                        const weight = weightMetric ? parseFloat(weightMetric.value.replace(/[^0-9.]/g, "")) || 0 : 0;
+                        let age = parseInt(scheduleAge, 10) || 0;
+                        if (age === 0) {
+                          const ageInput = prompt("Please enter your age:");
+                          age = ageInput ? parseInt(ageInput, 10) || 0 : 0;
+                        }
+                        if (age > 0 && weight > 0) {
+                          const medicines = getMedicineRecommendations(age, weight, term);
+                          setMedicineRecommendations(medicines);
+                        }
+                      }}
+                      className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full hover:bg-blue-100 transition-colors"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {medicineRecommendations.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-slate-800">
+                      {medicineRecommendations.length} Recommendations Found
+                    </h3>
+                    <div className="text-xs text-slate-500">
+                      Sorted by relevance to your condition
+                    </div>
+                  </div>
+                  <div className="grid gap-4">
+                    {medicineRecommendations.map((med, i) => {
+                      // Determine medicine category for visual grouping
+                      const getCategory = (name: string, notes: string) => {
+                        if (name.includes('Paracetamol') || name.includes('Ibuprofen') || name.includes('Aspirin') || name.includes('Naproxen')) return 'Pain Relief';
+                        if (name.includes('Cetirizine') || name.includes('Loratadine') || name.includes('Fexofenadine') || name.includes('Diphenhydramine')) return 'Allergy';
+                        if (name.includes('Phenylephrine') || name.includes('Dextromethorphan') || name.includes('Guaifenesin')) return 'Cold & Flu';
+                        if (name.includes('Omeprazole') || name.includes('Ranitidine') || name.includes('Loperamide') || name.includes('Simethicone')) return 'Digestive';
+                        if (name.includes('Amoxicillin') || name.includes('Azithromycin') || name.includes('Ciprofloxacin') || name.includes('Doxycycline')) return 'Antibiotics';
+                        if (name.includes('Metformin') || name.includes('Atorvastatin') || name.includes('Lisinopril') || name.includes('Amlodipine')) return 'Chronic';
+                        if (name.includes('Sertraline') || name.includes('Escitalopram') || name.includes('Alprazolam')) return 'Mental Health';
+                        if (name.includes('Vitamin') || name.includes('Omega') || name.includes('Probiotics')) return 'Supplements';
+                        if (name.includes('Albuterol') || name.includes('Fluticasone') || name.includes('Montelukast')) return 'Respiratory';
+                        if (name.includes('Folic') || name.includes('Iron') || name.includes('Calcium')) return 'Women\'s Health';
+                        return 'Other';
+                      };
+                      
+                      const category = getCategory(med.name, med.notes);
+                      const getCategoryColor = (cat: string) => {
+                        const colors: Record<string, string> = {
+                          'Pain Relief': 'bg-red-50 text-red-700 border-red-200',
+                          'Allergy': 'bg-purple-50 text-purple-700 border-purple-200',
+                          'Cold & Flu': 'bg-blue-50 text-blue-700 border-blue-200',
+                          'Digestive': 'bg-green-50 text-green-700 border-green-200',
+                          'Antibiotics': 'bg-orange-50 text-orange-700 border-orange-200',
+                          'Chronic': 'bg-slate-50 text-slate-700 border-slate-200',
+                          'Mental Health': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                          'Supplements': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                          'Respiratory': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+                          'Women\'s Health': 'bg-pink-50 text-pink-700 border-pink-200',
+                          'Other': 'bg-gray-50 text-gray-700 border-gray-200'
+                        };
+                        return colors[cat] || colors['Other'];
+                      };
+                      
+                      return (
+                        <Card key={i} className={`border-2 ${getCategoryColor(category).split(' ')[2]} hover:shadow-lg transition-all`}>
+                          <CardContent className="p-5">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h4 className="font-bold text-lg text-slate-800">{med.name}</h4>
+                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${getCategoryColor(category)}`}>
+                                    {category}
+                                  </span>
+                                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                    {med.ageGroup.join(", ")}
+                                  </span>
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-3 text-sm">
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-slate-700">Dosage:</span>
+                                      <span className="text-slate-600">{med.dosage}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-slate-700">Frequency:</span>
+                                      <span className="text-slate-600">{med.frequency}</span>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-slate-700">Duration:</span>
+                                      <span className="text-slate-600">{med.duration}</span>
+                                    </div>
+                                    {med.weightRange && (
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-slate-700">Weight:</span>
+                                        <span className="text-slate-600">{med.weightRange.min}-{med.weightRange.max === Infinity ? '+' : med.weightRange.max} kg</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-lg">
+                              <p className="text-sm text-slate-700 italic">
+                                <span className="font-semibold not-italic">💡 Note:</span> {med.notes}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Pill className="size-10 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                    {medicineCondition ? 'No matching medicines found' : 'Enter your symptoms to get recommendations'}
+                  </h3>
+                  <p className="text-slate-600 mb-4">
+                    {medicineCondition 
+                      ? 'Try different keywords or check your age/weight settings.' 
+                      : 'Describe your condition above to receive personalized medicine suggestions.'}
+                  </p>
+                  {!medicineCondition && (
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {['headache', 'fever', 'allergy', 'cough', 'stomach pain'].map((term) => (
+                        <button
+                          key={term}
+                          onClick={() => {
+                            setMedicineCondition(term);
+                            const weightMetric = healthMetrics.find((m) => m.label === "Weight");
+                            const weight = weightMetric ? parseFloat(weightMetric.value.replace(/[^0-9.]/g, "")) || 0 : 0;
+                            let age = parseInt(scheduleAge, 10) || 0;
+                            if (age === 0) {
+                              const ageInput = prompt("Please enter your age:");
+                              age = ageInput ? parseInt(ageInput, 10) || 0 : 0;
+                            }
+                            if (age > 0 && weight > 0) {
+                              const medicines = getMedicineRecommendations(age, weight, term);
+                              setMedicineRecommendations(medicines);
+                            }
+                          }}
+                          className="px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                        >
+                          {term}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <DialogFooter className="flex items-center justify-between">
+              <div className="text-xs text-slate-500">
+                ⚠️ This is not medical advice. Always consult healthcare professionals.
+              </div>
+              <Button variant="outline" onClick={() => setMedicineModalOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           {/* Recent Reports */}
           <div>
@@ -486,37 +791,71 @@ export function DashboardPage() {
 
           {/* Upcoming Appointments */}
           <div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">{t("dashboard.upcomingAppointments")}</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">{t("dashboard.upcomingAppointments")}</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-blue-200 text-blue-700"
+                onClick={async () => {
+                  const granted = await requestNotificationPermission();
+                  if (granted) {
+                    alert("Notifications enabled! You'll receive reminders for your appointments.");
+                  } else {
+                    alert("Please enable notifications in your browser settings to receive appointment reminders.");
+                  }
+                }}
+              >
+                <Bell className="size-4 mr-2" />
+                Enable reminders
+              </Button>
+            </div>
             <div className="space-y-4">
-              {upcomingAppointments.map((appointment, index) => (
-                <Card key={index} className="border border-slate-200 hover:border-emerald-300 transition-all shadow-md hover:shadow-lg">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="bg-gradient-to-r from-emerald-100 to-blue-100 p-3 rounded-lg">
-                        <Calendar className="size-6 text-blue-700" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-slate-800 mb-1">{appointment.title}</h3>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
-                          <Clock className="size-4" />
-                          {appointment.date} at {appointment.time}
+              {upcomingAppointments.map((appointment, index) => {
+                const appointmentDate = new Date(appointment.date + " " + appointment.time);
+                const isUpcoming = appointmentDate > new Date();
+                const daysUntil = Math.ceil((appointmentDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                return (
+                  <Card key={index} className={`border ${isUpcoming ? "border-emerald-300" : "border-slate-200"} hover:border-emerald-400 transition-all shadow-md hover:shadow-lg`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-gradient-to-r from-emerald-100 to-blue-100 p-3 rounded-lg">
+                          <Calendar className="size-6 text-blue-700" />
                         </div>
-                        <p className="text-sm text-slate-600">{appointment.doctor}</p>
-                        {appointment.contact && (
-                          <p className="text-sm text-slate-600 flex items-center gap-1 mt-1">
-                            <Phone className="size-3" /> {appointment.contact}
-                          </p>
-                        )}
-                        {appointment.venue && (
-                          <p className="text-sm text-slate-600 flex items-center gap-1 mt-1">
-                            <MapPin className="size-3" /> {appointment.venue}
-                          </p>
-                        )}
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-1">
+                            <h3 className="font-bold text-slate-800">{appointment.title}</h3>
+                            {isUpcoming && daysUntil <= 1 && (
+                              <span className="flex items-center gap-1 text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                                <Bell className="size-3" />
+                                Reminder set
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
+                            <Clock className="size-4" />
+                            {appointment.date} at {appointment.time}
+                            {isUpcoming && daysUntil > 0 && (
+                              <span className="text-xs text-emerald-600">({daysUntil} day{daysUntil !== 1 ? "s" : ""} away)</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-600">{appointment.doctor}</p>
+                          {appointment.contact && (
+                            <p className="text-sm text-slate-600 flex items-center gap-1 mt-1">
+                              <Phone className="size-3" /> {appointment.contact}
+                            </p>
+                          )}
+                          {appointment.venue && (
+                            <p className="text-sm text-slate-600 flex items-center gap-1 mt-1">
+                              <MapPin className="size-3" /> {appointment.venue}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
               <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-50" onClick={openScheduleModal}>
                 Schedule New Appointment
               </Button>
