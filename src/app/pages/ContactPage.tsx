@@ -5,8 +5,10 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { Label } from "../components/ui/label";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { useTranslation } from "../context/LanguageContext";
 
 export function ContactPage() {
+  const { t } = useTranslation();
   const contactInfo = [
     {
       icon: Mail,
@@ -73,10 +75,9 @@ export function ContactPage() {
       <section className="bg-gradient-to-br from-blue-50 to-purple-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-5xl font-bold text-gray-900 mb-4">Get in Touch</h1>
+            <h1 className="text-5xl font-bold text-gray-900 mb-4">{t("contact.title")}</h1>
             <p className="text-xl text-gray-600">
-              Have questions? We're here to help. Reach out to our team and we'll get back to you
-              as soon as possible.
+              {t("contact.subtitle")}
             </p>
           </div>
         </div>

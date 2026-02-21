@@ -3,37 +3,20 @@ import { Menu, X, LogIn, UserPlus, Globe } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import logoImage from "@/assets/184da1d23b1d7b6a564271e33d32f4a06365fd10.png";
+import { useLanguage, SUPPORTED_LANGUAGES } from "../context/LanguageContext";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [language, setLanguage] = useState("EN");
+  const { language, setLanguage, t } = useLanguage();
   const location = useLocation();
 
   const navLinks = [
-    { path: "/", label: "Home" },
-    { path: "/upload-report", label: "Upload Report" },
-    { path: "/features", label: "Features" },
-    { path: "/how-it-works", label: "How It Works" },
-    { path: "/voice-analyzer", label: "Voice Analyzer" },
-    { path: "/contact", label: "Contact" },
-  ];
-
-  const languages = [
-    { code: "EN", name: "English" },
-    { code: "HI", name: "हिंदी (Hindi)" },
-    { code: "OD", name: "ଓଡ଼ିଆ (Odia)" },
-    { code: "BN", name: "বাংলা (Bengali)" },
-    { code: "TE", name: "తెలుగు (Telugu)" },
-    { code: "MR", name: "मराठी (Marathi)" },
-    { code: "TA", name: "தமிழ் (Tamil)" },
-    { code: "GU", name: "ગુજરાતી (Gujarati)" },
-    { code: "KN", name: "ಕನ್ನಡ (Kannada)" },
-    { code: "ML", name: "മലയാളം (Malayalam)" },
-    { code: "PA", name: "ਪੰਜਾਬੀ (Punjabi)" },
-    { code: "ES", name: "Español" },
-    { code: "FR", name: "Français" },
-    { code: "DE", name: "Deutsch" },
-    { code: "ZH", name: "中文 (Chinese)" },
+    { path: "/", label: t("header.nav.home") },
+    { path: "/upload-report", label: t("header.nav.uploadReport") },
+    { path: "/features", label: t("header.nav.features") },
+    { path: "/how-it-works", label: t("header.nav.howItWorks") },
+    { path: "/voice-analyzer", label: t("header.nav.voiceAnalyzer") },
+    { path: "/contact", label: t("header.nav.contact") },
   ];
 
   const isActive = (path: string) => {
@@ -57,7 +40,7 @@ export function Header() {
               <span className="font-bold text-2xl text-slate-800">
                 MediSense
               </span>
-              <span className="text-[10px] text-emerald-700 -mt-1 font-semibold tracking-wide">Healthcare Intelligence</span>
+              <span className="text-[10px] text-emerald-700 -mt-1 font-semibold tracking-wide">{t("header.tagline")}</span>
             </div>
           </Link>
 
@@ -83,10 +66,10 @@ export function Header() {
             <div className="relative group">
               <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 hover:bg-emerald-50 transition-all">
                 <Globe className="size-4 text-emerald-600" />
-                <span className="text-sm font-medium text-slate-700">{language}</span>
+                <span className="text-sm font-medium text-slate-700">{SUPPORTED_LANGUAGES.find((l) => l.code === language)?.name ?? language}</span>
               </button>
               <div className="absolute top-full right-0 mt-2 bg-white border border-emerald-100 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                {languages.map((lang) => (
+                {SUPPORTED_LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => setLanguage(lang.code)}
@@ -100,13 +83,13 @@ export function Header() {
             <Button variant="outline" className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition-all font-medium" asChild>
               <Link to="/login">
                 <LogIn className="size-4 mr-2" />
-                Login
+                {t("header.login")}
               </Link>
             </Button>
             <Button className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all font-medium" asChild>
               <Link to="/signup">
                 <UserPlus className="size-4 mr-2" />
-                Sign Up
+                {t("header.signUp")}
               </Link>
             </Button>
           </div>
@@ -146,13 +129,13 @@ export function Header() {
                 <Button variant="outline" className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 w-full" asChild>
                   <Link to="/login">
                     <LogIn className="size-4 mr-2" />
-                    Login
+                    {t("header.login")}
                   </Link>
                 </Button>
                 <Button className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white w-full" asChild>
                   <Link to="/signup">
                     <UserPlus className="size-4 mr-2" />
-                    Sign Up
+                    {t("header.signUp")}
                   </Link>
                 </Button>
               </div>

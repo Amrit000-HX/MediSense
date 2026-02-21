@@ -15,39 +15,41 @@ import {
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { useTranslation } from "../context/LanguageContext";
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const recentReports = [
     {
-      title: "Blood Test Results",
-      date: "2 days ago",
-      status: "Reviewed",
+      title: t("dashboard.bloodTestResults"),
+      date: t("dashboard.twoDaysAgo"),
+      status: t("dashboard.reviewed"),
       color: "emerald",
     },
     {
-      title: "Cholesterol Panel",
-      date: "1 week ago",
-      status: "Pending",
+      title: t("dashboard.cholesterolPanel"),
+      date: t("dashboard.oneWeekAgo"),
+      status: t("dashboard.pending"),
       color: "blue",
     },
     {
-      title: "Thyroid Function Test",
-      date: "2 weeks ago",
-      status: "Reviewed",
+      title: t("dashboard.thyroidTest"),
+      date: t("dashboard.twoWeeksAgo"),
+      status: t("dashboard.reviewed"),
       color: "emerald",
     },
   ];
 
   const healthMetrics = [
-    { label: "Blood Pressure", value: "120/80", status: "Normal", icon: Heart, color: "emerald" },
-    { label: "Heart Rate", value: "72 bpm", status: "Good", icon: Activity, color: "blue" },
-    { label: "Glucose", value: "95 mg/dL", status: "Normal", icon: TrendingUp, color: "emerald" },
-    { label: "BMI", value: "23.5", status: "Healthy", icon: BarChart3, color: "blue" },
+    { label: t("dashboard.bloodPressure"), value: "120/80", status: t("dashboard.normal"), icon: Heart, color: "emerald" },
+    { label: t("dashboard.heartRate"), value: "72 bpm", status: t("dashboard.good"), icon: Activity, color: "blue" },
+    { label: t("dashboard.glucose"), value: "95 mg/dL", status: t("dashboard.normal"), icon: TrendingUp, color: "emerald" },
+    { label: t("dashboard.bmi"), value: "23.5", status: t("dashboard.healthy"), icon: BarChart3, color: "blue" },
   ];
 
   const upcomingAppointments = [
-    { title: "Annual Checkup", date: "Mar 15, 2026", time: "10:00 AM", doctor: "Dr. Sarah Johnson" },
-    { title: "Follow-up Consultation", date: "Mar 22, 2026", time: "2:30 PM", doctor: "Dr. Michael Chen" },
+    { title: t("dashboard.annualCheckup"), date: "Mar 15, 2026", time: "10:00 AM", doctor: "Dr. Sarah Johnson" },
+    { title: t("dashboard.followUp"), date: "Mar 22, 2026", time: "2:30 PM", doctor: "Dr. Michael Chen" },
   ];
 
   return (
@@ -60,8 +62,8 @@ export function DashboardPage() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-slate-800 mb-2">Welcome back, John!</h1>
-          <p className="text-slate-600">Here's your health summary for today</p>
+          <h1 className="text-4xl font-bold text-slate-800 mb-2">{t("dashboard.welcome")}</h1>
+          <p className="text-slate-600">{t("dashboard.summary")}</p>
         </div>
 
         {/* Quick Actions */}
@@ -73,11 +75,11 @@ export function DashboardPage() {
                   <Upload className="size-8 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-slate-800 mb-1">Upload New Report</h3>
-                  <p className="text-slate-600 text-sm">Get instant AI analysis</p>
+                  <h3 className="text-xl font-bold text-slate-800 mb-1">{t("dashboard.uploadNewReport")}</h3>
+                  <p className="text-slate-600 text-sm">{t("dashboard.getInstantAnalysis")}</p>
                 </div>
                 <Button className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white" asChild>
-                  <Link to="/upload-report">Upload</Link>
+                  <Link to="/upload-report">{t("dashboard.upload")}</Link>
                 </Button>
               </div>
             </CardContent>
@@ -90,11 +92,11 @@ export function DashboardPage() {
                   <Mic className="size-8 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-slate-800 mb-1">Voice Analysis</h3>
-                  <p className="text-slate-600 text-sm">Describe your symptoms</p>
+                  <h3 className="text-xl font-bold text-slate-800 mb-1">{t("dashboard.voiceAnalysis")}</h3>
+                  <p className="text-slate-600 text-sm">{t("dashboard.describeSymptoms")}</p>
                 </div>
                 <Button className="bg-gradient-to-r from-emerald-600 to-blue-600 text-white" asChild>
-                  <Link to="/voice-analyzer">Start</Link>
+                  <Link to="/voice-analyzer">{t("dashboard.start")}</Link>
                 </Button>
               </div>
             </CardContent>
@@ -103,7 +105,7 @@ export function DashboardPage() {
 
         {/* Health Metrics */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold text-slate-800 mb-6">Your Health Metrics</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mb-6">{t("dashboard.yourHealthMetrics")}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {healthMetrics.map((metric, index) => (
               <Card key={index} className="border-2 border-slate-100 hover:border-emerald-200 transition-all shadow-md hover:shadow-lg">
@@ -127,7 +129,7 @@ export function DashboardPage() {
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           {/* Recent Reports */}
           <div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">Recent Reports</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-6">{t("dashboard.recentReports")}</h2>
             <div className="space-y-4">
               {recentReports.map((report, index) => (
                 <Card key={index} className="border border-slate-200 hover:border-blue-300 transition-all shadow-md hover:shadow-lg">
@@ -150,14 +152,14 @@ export function DashboardPage() {
                 </Card>
               ))}
               <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                View All Reports
+                {t("dashboard.viewAllReports")}
               </Button>
             </div>
           </div>
 
           {/* Upcoming Appointments */}
           <div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">Upcoming Appointments</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-6">{t("dashboard.upcomingAppointments")}</h2>
             <div className="space-y-4">
               {upcomingAppointments.map((appointment, index) => (
                 <Card key={index} className="border border-slate-200 hover:border-emerald-300 transition-all shadow-md hover:shadow-lg">
@@ -179,7 +181,7 @@ export function DashboardPage() {
                 </Card>
               ))}
               <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-50">
-                Schedule New Appointment
+                {t("dashboard.scheduleNewAppointment")}
               </Button>
             </div>
           </div>
@@ -193,12 +195,12 @@ export function DashboardPage() {
                 <Brain className="size-10 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-slate-800 mb-3">AI Health Insights</h3>
+                <h3 className="text-2xl font-bold text-slate-800 mb-3">{t("dashboard.aiHealthInsights")}</h3>
                 <p className="text-slate-700 mb-4">
-                  Based on your recent reports, your overall health is trending positively. Your cholesterol levels show improvement compared to last month. Consider maintaining your current diet and exercise routine.
+                  {t("dashboard.insightsText")}
                 </p>
                 <Button className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white">
-                  View Detailed Analysis
+                  {t("dashboard.viewDetailedAnalysis")}
                 </Button>
               </div>
             </div>

@@ -28,8 +28,10 @@ import aiHumanTech from "@/assets/27795985fee1a3aafe4d5b3a59a107858813c3d2.png";
 import aiDoctorTech from "@/assets/3a45a9c10668f994c148773eee030b10555ca43b.png";
 import dnaTech from "@/assets/4193469899c0f6ab6b394da7bbea3f4bd9ff4134.png";
 import bgPattern from "@/assets/a60f65e947494263765d4160830f0c9ceb22daae.png";
+import { useTranslation } from "../context/LanguageContext";
 
 export function HomePage() {
+  const { t } = useTranslation();
   const [selectedDisease, setSelectedDisease] = useState<{
     name: string;
     icon: any;
@@ -211,19 +213,18 @@ export function HomePage() {
             <div className="space-y-8">
               <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm text-emerald-700 px-6 py-3 rounded-full text-sm font-bold shadow-lg border border-emerald-100 animate-float">
                 <Sparkles className="size-5 animate-pulse" />
-                AI-Powered Healthcare Intelligence
+                {t("home.hero.badge")}
               </div>
               
               <h1 className="text-6xl lg:text-7xl font-bold text-slate-800 leading-tight">
-                Your Health,{" "}
+                {t("home.hero.title")}{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-emerald-600">
-                  Decoded
+                  {t("home.hero.titleHighlight")}
                 </span>
               </h1>
               
               <p className="text-2xl text-slate-600 leading-relaxed">
-                Transform complex medical reports into clear, personalized insights.
-                Understand your health like never before.
+                {t("home.hero.subtitle")}
               </p>
 
               {/* Stats Pills */}
@@ -233,7 +234,7 @@ export function HomePage() {
                     <Clock className="size-6 text-blue-600" />
                     <div>
                       <div className="font-bold text-slate-800 text-lg">24/7</div>
-                      <div className="text-xs text-blue-600 font-medium">Available</div>
+                      <div className="text-xs text-blue-600 font-medium">{t("home.hero.available")}</div>
                     </div>
                   </div>
                 </div>
@@ -242,7 +243,7 @@ export function HomePage() {
                     <Award className="size-6 text-emerald-600" />
                     <div>
                       <div className="font-bold text-slate-800 text-lg">99.2%</div>
-                      <div className="text-xs text-emerald-600 font-medium">Accurate</div>
+                      <div className="text-xs text-emerald-600 font-medium">{t("home.hero.accurate")}</div>
                     </div>
                   </div>
                 </div>
@@ -251,7 +252,7 @@ export function HomePage() {
                     <Users className="size-6 text-sky-600" />
                     <div>
                       <div className="font-bold text-slate-800 text-lg">850K+</div>
-                      <div className="text-xs text-sky-600 font-medium">Users</div>
+                      <div className="text-xs text-sky-600 font-medium">{t("home.hero.users")}</div>
                     </div>
                   </div>
                 </div>
@@ -260,7 +261,7 @@ export function HomePage() {
               <div className="flex flex-col sm:flex-row gap-5 pt-6">
                 <Button className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white px-10 py-6 text-lg shadow-xl transition-all" asChild>
                   <Link to="/signup">
-                    Upload Your Report
+                    {t("home.hero.uploadReport")}
                     <ArrowRight className="ml-2 size-5" />
                   </Link>
                 </Button>
@@ -271,7 +272,7 @@ export function HomePage() {
                 >
                   <Link to="/how-it-works">
                     <Heart className="mr-2 size-5" />
-                    Learn More
+                    {t("home.hero.learnMore")}
                   </Link>
                 </Button>
               </div>

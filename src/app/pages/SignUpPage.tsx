@@ -3,8 +3,10 @@ import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import logoImage from "@/assets/184da1d23b1d7b6a564271e33d32f4a06365fd10.png";
+import { useTranslation } from "../context/LanguageContext";
 
 export function SignUpPage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 relative overflow-hidden flex items-center justify-center py-12 px-4">
       {/* Background Pattern */}
@@ -25,15 +27,15 @@ export function SignUpPage() {
                   <img src={logoImage} alt="MediSense" className="relative size-20 object-contain" />
                 </div>
               </div>
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">Create Account</h1>
-              <p className="text-slate-600">Start your health journey with us</p>
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">{t("signup.title")}</h1>
+              <p className="text-slate-600">{t("signup.subtitle")}</p>
             </div>
 
             {/* Sign Up Form */}
             <form className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Full Name
+                  {t("signup.fullName")}
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
@@ -47,7 +49,7 @@ export function SignUpPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Email Address
+                  {t("signup.email")}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
@@ -75,7 +77,7 @@ export function SignUpPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Confirm Password
+                  {t("signup.confirmPassword")}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
@@ -103,7 +105,7 @@ export function SignUpPage() {
 
               <Button className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white py-3 font-medium" asChild>
                 <Link to="/dashboard">
-                  Create Account
+                  {t("signup.createAccount")}
                   <ArrowRight className="ml-2 size-5" />
                 </Link>
               </Button>
@@ -140,9 +142,9 @@ export function SignUpPage() {
 
             {/* Login Link */}
             <p className="text-center mt-6 text-slate-600">
-              Already have an account?{" "}
+              {t("signup.haveAccount")}{" "}
               <Link to="/login" className="text-emerald-600 hover:text-emerald-700 font-medium">
-                Sign in
+                {t("signup.signIn")}
               </Link>
             </p>
           </CardContent>

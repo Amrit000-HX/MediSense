@@ -20,10 +20,12 @@ import {
 } from "../lib/reportParser";
 import { analyzeReportText, type AnalysisResult } from "../lib/reportAnalysis";
 import { cn } from "../components/ui/utils";
+import { useTranslation } from "../context/LanguageContext";
 
 type Step = "idle" | "uploading" | "analyzing" | "done" | "error";
 
 export function UploadReportPage() {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("idle");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -100,10 +102,10 @@ export function UploadReportPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold text-slate-800 mb-2">
-            Upload New Report
+            {t("uploadReport.title")}
           </h1>
           <p className="text-slate-600 text-lg">
-            Upload a PDF, Word document, or image (PNG/JPG). We'll analyze it using OCR and AI to give you a clear summary and recommendations.
+            {t("uploadReport.subtitle")}
           </p>
         </div>
 
@@ -127,10 +129,10 @@ export function UploadReportPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-semibold text-slate-800">
-                    Drag and drop your report here, or click to browse
+                    {t("uploadReport.dragDrop")}
                   </p>
                   <p className="text-sm text-slate-500 mt-1">
-                    PDF, Word (.pdf, .doc, .docx), or image (.png, .jpg) — max 10 MB
+                    {t("uploadReport.fileTypes")}
                   </p>
                 </div>
                 <Button
@@ -138,7 +140,7 @@ export function UploadReportPage() {
                   className="bg-gradient-to-r from-blue-600 to-emerald-600 text-white pointer-events-none"
                   tabIndex={-1}
                 >
-                  Choose file
+                  {t("uploadReport.chooseFile")}
                 </Button>
               </label>
               <input
@@ -159,7 +161,7 @@ export function UploadReportPage() {
               <Loader2 className="size-14 text-emerald-600 animate-spin" />
               <div className="text-center">
                 <p className="text-xl font-semibold text-slate-800">
-                  {step === "uploading" ? "Reading your report…" : "Analyzing with AI…"}
+                  {step === "uploading" ? t("uploadReport.reading") : t("uploadReport.analyzing")}
                 </p>
                 <p className="text-slate-600 mt-1">
                   {file?.name}
@@ -175,10 +177,10 @@ export function UploadReportPage() {
               <div className="flex items-start gap-4">
                 <AlertCircle className="size-10 text-red-600 shrink-0" />
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-800">Something went wrong</h3>
+                  <h3 className="text-lg font-semibold text-slate-800">{t("uploadReport.somethingWrong")}</h3>
                   <p className="text-slate-700 mt-1">{error}</p>
                   <Button className="mt-4" variant="outline" onClick={reset}>
-                    Try another file
+                    {t("uploadReport.tryAnother")}
                   </Button>
                 </div>
               </div>
@@ -191,16 +193,16 @@ export function UploadReportPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-emerald-700">
                 <CheckCircle2 className="size-6" />
-                <span className="font-semibold">Analysis complete</span>
+                <span className="font-semibold">{t("uploadReport.analysisComplete")}</span>
               </div>
               <Button variant="outline" size="sm" onClick={reset}>
-                Upload another
+                {t("uploadReport.uploadAnother")}
               </Button>
             </div>
 
             <Card className="border-2 border-emerald-100">
               <CardHeader>
-                <CardTitle className="text-slate-800">Summary</CardTitle>
+                <CardTitle className="text-slate-800">{t("uploadReport.summary")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-700 leading-relaxed">{result.summary}</p>
@@ -212,7 +214,7 @@ export function UploadReportPage() {
                 <CardHeader>
                   <CardTitle className="text-slate-800 flex items-center gap-2">
                     <FileText className="size-5" />
-                    Key findings
+                    {t("uploadReport.keyFindings")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -254,7 +256,7 @@ export function UploadReportPage() {
                 <CardHeader>
                   <CardTitle className="text-slate-800 flex items-center gap-2">
                     <Activity className="size-5" />
-                    Possible symptoms to monitor
+                    {t("uploadReport.possibleSymptoms")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -275,7 +277,7 @@ export function UploadReportPage() {
                 <CardHeader>
                   <CardTitle className="text-slate-800 flex items-center gap-2">
                     <HeartPulse className="size-5" />
-                    Prevention & lifestyle tips
+                    {t("uploadReport.preventionTips")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -296,7 +298,7 @@ export function UploadReportPage() {
                 <CardHeader>
                   <CardTitle className="text-slate-800 flex items-center gap-2">
                     <CalendarClock className="size-5" />
-                    Future monitoring & follow-up
+                    {t("uploadReport.futureFollowUp")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -317,7 +319,7 @@ export function UploadReportPage() {
                 <CardHeader>
                   <CardTitle className="text-slate-800 flex items-center gap-2">
                     <Lightbulb className="size-5" />
-                    Recommendations
+                    {t("uploadReport.recommendations")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

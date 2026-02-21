@@ -3,8 +3,10 @@ import { Mail, Lock, ArrowRight } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import logoImage from "@/assets/184da1d23b1d7b6a564271e33d32f4a06365fd10.png";
+import { useTranslation } from "../context/LanguageContext";
 
 export function LoginPage() {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 relative overflow-hidden flex items-center justify-center py-12 px-4">
       {/* Background Pattern */}
@@ -25,15 +27,15 @@ export function LoginPage() {
                   <img src={logoImage} alt="MediSense" className="relative size-20 object-contain" />
                 </div>
               </div>
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">Welcome Back</h1>
-              <p className="text-slate-600">Sign in to access your health dashboard</p>
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">{t("login.welcome")}</h1>
+              <p className="text-slate-600">{t("login.subtitle")}</p>
             </div>
 
             {/* Login Form */}
             <form className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Email Address
+                  {t("login.email")}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
@@ -47,7 +49,7 @@ export function LoginPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Password
+                  {t("login.password")}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
@@ -62,16 +64,16 @@ export function LoginPage() {
               <div className="flex items-center justify-between">
                 <label className="flex items-center">
                   <input type="checkbox" className="rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500" />
-                  <span className="ml-2 text-sm text-slate-600">Remember me</span>
+                  <span className="ml-2 text-sm text-slate-600">{t("login.rememberMe")}</span>
                 </label>
                 <Link to="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                  Forgot password?
+                  {t("login.forgotPassword")}
                 </Link>
               </div>
 
               <Button className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white py-3 font-medium" asChild>
                 <Link to="/dashboard">
-                  Sign In
+                  {t("login.signIn")}
                   <ArrowRight className="ml-2 size-5" />
                 </Link>
               </Button>
@@ -83,7 +85,7 @@ export function LoginPage() {
                 <div className="w-full border-t border-slate-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-slate-500">Or continue with</span>
+                <span className="px-4 bg-white text-slate-500">{t("login.orContinueWith")}</span>
               </div>
             </div>
 
@@ -108,9 +110,9 @@ export function LoginPage() {
 
             {/* Sign Up Link */}
             <p className="text-center mt-6 text-slate-600">
-              Don't have an account?{" "}
+              {t("login.noAccount")}{" "}
               <Link to="/signup" className="text-emerald-600 hover:text-emerald-700 font-medium">
-                Sign up now
+                {t("login.signUpNow")}
               </Link>
             </p>
           </CardContent>

@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Mic, MicOff, PlayCircle, StopCircle, FileText, Brain } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
+import { useTranslation } from "../context/LanguageContext";
 
 export function VoiceAnalyzerPage() {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecording, setHasRecording] = useState(false);
 
@@ -37,10 +39,10 @@ export function VoiceAnalyzerPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-block bg-gradient-to-r from-blue-600 to-emerald-600 text-white px-6 py-2 rounded-full text-sm font-bold mb-6 shadow-lg">
-            AI Voice Analysis
+            {t("voiceAnalyzer.badge")}
           </div>
-          <h1 className="text-5xl font-bold text-slate-800 mb-4">Voice Symptom Analyzer</h1>
-          <p className="text-xl text-slate-600">Describe your symptoms and get instant AI-powered health insights</p>
+          <h1 className="text-5xl font-bold text-slate-800 mb-4">{t("voiceAnalyzer.title")}</h1>
+          <p className="text-xl text-slate-600">{t("voiceAnalyzer.subtitle")}</p>
         </div>
 
         {/* Recording Interface */}
