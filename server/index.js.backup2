@@ -10,7 +10,7 @@ const Tesseract = require("tesseract.js");
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Import MongoDB models
-const { User, OTP, Contact, Report, HealthMetrics, Appointment, VoiceAnalysis } = require('./models.js');
+const { User, OTP, Contact, Report, HealthMetrics, Appointment, VoiceAnalysis } = require('./models');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
