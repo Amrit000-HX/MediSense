@@ -10,10 +10,7 @@
     "dev:all": "concurrently \"npm run server\" \"npm run dev\""
   },
   "dependencies": {
-<<<<<<< HEAD
-=======
     "@emailjs/browser": "^4.4.1",
->>>>>>> local-changes
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
@@ -48,31 +45,14 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
-<<<<<<< HEAD
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
-=======
-    "cors": "^2.8.5",
-    "date-fns": "3.6.0",
-    "embla-carousel-react": "8.6.0",
-    "express": "^4.21.0",
->>>>>>> local-changes
     "i18next": "^25.8.13",
     "i18next-browser-languagedetector": "^8.2.1",
     "input-otp": "1.4.2",
     "lucide-react": "0.487.0",
-<<<<<<< HEAD
     "motion": "12.23.24",
     "next-themes": "0.4.6",
-=======
-    "mammoth": "1.8.0",
-    "mongodb": "^6.21.0",
-    "mongoose": "^8.23.0",
-    "motion": "12.23.24",
-    "multer": "^1.4.5-lts.1",
-    "next-themes": "0.4.6",
-    "pdfjs-dist": "4.7.76",
->>>>>>> local-changes
     "react-day-picker": "8.10.1",
     "react-dnd": "16.0.1",
     "react-dnd-html5-backend": "16.0.1",
@@ -86,33 +66,23 @@
     "recharts": "2.15.2",
     "sonner": "2.0.3",
     "tailwind-merge": "3.2.0",
-<<<<<<< HEAD
     "tw-animate-css": "1.3.8",
     "vaul": "1.1.2",
     "cors": "^2.8.5",
     "express": "^4.21.0",
-"multer": "^1.4.5-lts.1",
+    "multer": "^1.4.5-lts.1",
     "mammoth": "1.8.0",
+    "mongodb": "^6.8.0",
+    "mongoose": "^8.5.2",
     "pdfjs-dist": "4.7.76",
     "tesseract.js": "5.1.1"
-=======
-    "tesseract.js": "5.1.1",
-    "tw-animate-css": "1.3.8",
-    "vaul": "1.1.2"
->>>>>>> local-changes
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
-<<<<<<< HEAD
     "tailwindcss": "4.1.12",
     "vite": "^6.4.1",
     "concurrently": "^9.0.1"
-=======
-    "concurrently": "^9.0.1",
-    "tailwindcss": "4.1.12",
-    "vite": "^6.4.1"
->>>>>>> local-changes
   },
   "peerDependencies": {
     "react": "18.3.1",
