@@ -53,7 +53,11 @@ export function UploadReportPage() {
     try {
       const text = await extractTextFromFile(selectedFile);
       if (!text || text.length < 10) {
+<<<<<<< HEAD
         setError("We couldn't extract enough text from this file. For images, ensure the photo is clear and contains readable text.");
+=======
+        setError("We couldn't extract enough text from this file. For images, ensure the photo is clear. For documents, ensure they contain readable text content.");
+>>>>>>> local-changes
         setStep("error");
         return;
       }
@@ -73,7 +77,11 @@ export function UploadReportPage() {
       setDragOver(false);
       const f = e.dataTransfer.files[0];
       if (f && isAcceptedFile(f)) handleFile(f);
+<<<<<<< HEAD
       else if (f) setError("Please upload a PDF, Word document (.pdf, .doc, .docx), or image (.png, .jpg).");
+=======
+      else if (f) setError("Please upload a PDF, Word document (.pdf, .doc, .docx), text file (.txt), spreadsheet (.csv, .xls, .xlsx), or image (.png, .jpg).");
+>>>>>>> local-changes
     },
     [handleFile]
   );
@@ -126,7 +134,11 @@ export function UploadReportPage() {
                 <input
                   id="upload-file-input"
                   type="file"
+<<<<<<< HEAD
                   accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+=======
+                  accept=".pdf,.doc,.docx,.txt,.rtf,.csv,.xls,.xlsx,.png,.jpg,.jpeg"
+>>>>>>> local-changes
                   className="hidden"
                   onChange={onInputChange}
                 />

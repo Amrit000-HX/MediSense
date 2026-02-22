@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Heart, Activity, Calendar, Pill, Pencil, FileText, Brain, Map, Phone, Clock, Star, ChevronRight, User, TrendingUp, AlertCircle, CheckCircle, Upload, Mic, Link, BarChart3, Bell, MapPin, Navigation } from "lucide-react";
@@ -9,12 +10,62 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { getHealthMetrics, saveHealthMetrics, getAppointments, getSavedHealthMetrics, getMatchingDoctors, getNearbyDoctors, addSavedAppointment, getMedicineRecommendations, requestNotificationPermission, checkAndNotifyReminders, saveUserLocation, getUserLocation, DEFAULT_METRICS, type HealthMetric, type Appointment, type Doctor, type Medicine } from "../api/dashboard";
 import { getReports, uploadReport, analyzeReport, type ReportItem, type ReportAnalysisResult } from "../api/reports";
 import { MiniDashboardGPS } from "../components/ui/mini-dashboard-gps";
+=======
+import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
+import {
+  Activity,
+  FileText,
+  TrendingUp,
+  Calendar,
+  Upload,
+  Mic,
+  BarChart3,
+  Heart,
+  Brain,
+  Clock,
+  Pencil,
+  Phone,
+  MapPin,
+} from "lucide-react";
+import { Card, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "../components/ui/dialog";
+import { getStoredUser } from "../api/auth";
+import { getReports, uploadReport, analyzeReport, type ReportItem, type ReportAnalysisResult } from "../api/reports";
+import {
+  getHealthMetrics,
+  getAppointments,
+  getSavedHealthMetrics,
+  saveHealthMetrics,
+  getMatchingDoctors,
+  addSavedAppointment,
+  DEFAULT_METRICS,
+  type HealthMetric,
+  type Appointment,
+  type Doctor,
+} from "../api/dashboard";
+>>>>>>> local-changes
 
 const METRICS_REF_ID = "dashboard-health-metrics";
 
 export function DashboardPage() {
   const { t } = useTranslation();
+<<<<<<< HEAD
   const user = JSON.parse(localStorage.getItem('user') || '{}');
+=======
+  const user = getStoredUser();
+>>>>>>> local-changes
   const [recentReports, setRecentReports] = useState<ReportItem[]>([]);
   const [healthMetrics, setHealthMetrics] = useState<HealthMetric[]>(() => getSavedHealthMetrics());
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
@@ -32,11 +83,14 @@ export function DashboardPage() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [editingMetrics, setEditingMetrics] = useState<HealthMetric[]>([]);
+<<<<<<< HEAD
   const [useGPS, setUseGPS] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [medicineModalOpen, setMedicineModalOpen] = useState(false);
   const [medicineRecommendations, setMedicineRecommendations] = useState<Medicine[]>([]);
   const [medicineCondition, setMedicineCondition] = useState("");
+=======
+>>>>>>> local-changes
   const fileInputRef = useRef<HTMLInputElement>(null);
   const metricsSectionRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +98,7 @@ export function DashboardPage() {
     getReports().then(setRecentReports).catch(() => {});
     setHealthMetrics(getSavedHealthMetrics());
     getAppointments().then(setUpcomingAppointments).catch(() => {});
+<<<<<<< HEAD
     // Request notification permission on mount
     requestNotificationPermission();
     // Check for reminders every minute
@@ -53,6 +108,8 @@ export function DashboardPage() {
     const savedLocation = getUserLocation();
     if (savedLocation) setUserLocation(savedLocation);
     return () => clearInterval(reminderInterval);
+=======
+>>>>>>> local-changes
   }, []);
 
   const openMetricsModal = () => {
@@ -60,14 +117,22 @@ export function DashboardPage() {
     setMetricsModalOpen(true);
   };
 
+<<<<<<< HEAD
   const saveMetrics = () => {
+=======
+  const handleMetricsSave = async () => {
+>>>>>>> local-changes
     const withStatus = editingMetrics.map((m) => {
       const val = (m.value || "").trim();
       const status = !val || val === "0" ? "Not set" : "Recorded";
       const color = val ? "emerald" : "blue";
       return { ...m, value: val || m.value, status, color };
     });
+<<<<<<< HEAD
     saveHealthMetrics(withStatus);
+=======
+    await saveHealthMetrics(withStatus);
+>>>>>>> local-changes
     setHealthMetrics(withStatus);
     setMetricsModalOpen(false);
   };
@@ -86,6 +151,7 @@ export function DashboardPage() {
     setScheduleModalOpen(true);
   };
 
+<<<<<<< HEAD
   const searchDoctors = async () => {
     const age = parseInt(scheduleAge, 10) || 0;
     if (useGPS && navigator.geolocation) {
@@ -137,6 +203,20 @@ export function DashboardPage() {
     if (!selectedDoctor || !selectedSlot) return;
     const date = scheduleDate || new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     addSavedAppointment({
+=======
+  const searchDoctors = () => {
+    const age = parseInt(scheduleAge, 10) || 0;
+    const list = getMatchingDoctors(scheduleLocation, age);
+    setMatchingDoctors(list);
+    setSelectedDoctor(null);
+    setSelectedSlot("");
+  };
+
+  const confirmAppointment = async () => {
+    if (!selectedDoctor || !selectedSlot) return;
+    const date = scheduleDate || new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    await addSavedAppointment({
+>>>>>>> local-changes
       title: selectedDoctor.specialty + " – " + selectedDoctor.name,
       date,
       time: selectedSlot,
@@ -167,6 +247,7 @@ export function DashboardPage() {
     fileInputRef.current?.click();
   };
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+<<<<<<< HEAD
     console.log("File selected:", e.target.files?.[0]);
     console.log("File type:", e.target.files?.[0]?.type);
     console.log("File name:", e.target.files?.[0]?.name);
@@ -178,10 +259,15 @@ export function DashboardPage() {
       return;
     }
     
+=======
+    const file = e.target.files?.[0];
+    if (!file) return;
+>>>>>>> local-changes
     const validTypes = [".pdf", ".ppt", ".pptx", ".txt", ".doc", ".docx"];
     const validImages = "image/jpeg,image/png,image/gif,image/webp";
     const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
     const isImage = file.type.startsWith("image/");
+<<<<<<< HEAD
     
     console.log("File extension:", ext);
     console.log("Is image:", isImage);
@@ -189,25 +275,37 @@ export function DashboardPage() {
     
     if (!validTypes.includes(ext) && !isImage) {
       console.log("Invalid file type");
+=======
+    if (!validTypes.includes(ext) && !isImage) {
+>>>>>>> local-changes
       setUploadError("Please upload a PDF, Word (.doc, .docx), PPT, PPTX, image, or TXT file.");
       e.target.value = "";
       return;
     }
+<<<<<<< HEAD
     
     console.log("File validation passed, starting upload...");
+=======
+>>>>>>> local-changes
     setUploadError(null);
     setAnalysisError(null);
     setLastAnalysis(null);
     setUploading(true);
+<<<<<<< HEAD
     
     try {
       console.log("Calling uploadReport...");
       const result = await uploadReport(file);
       console.log("Upload result:", result);
+=======
+    try {
+      const result = await uploadReport(file);
+>>>>>>> local-changes
       const newReport: ReportItem = { id: result.id, title: result.title, date: "Just now", status: "Analyzing...", color: "blue" };
       setRecentReports((prev) => [newReport, ...prev]);
       setUploading(false);
       e.target.value = "";
+<<<<<<< HEAD
       
       console.log("Starting analysis...");
       setAnalyzingReport(true);
@@ -215,22 +313,40 @@ export function DashboardPage() {
         console.log("Calling analyzeReport...");
         const analysis = await analyzeReport(file);
         console.log("Analysis result:", analysis);
+=======
+
+      setAnalyzingReport(true);
+      try {
+        const analysis = await analyzeReport(file);
+>>>>>>> local-changes
         setLastAnalysis({ reportTitle: result.title, result: analysis });
         setRecentReports((prev) =>
           prev.map((r) => (r.id === result.id ? { ...r, status: analysis.status || "Reviewed", color: "emerald" as const } : r))
         );
+<<<<<<< HEAD
       } catch (err) {
         console.error("Analysis error:", err);
+=======
+      } catch {
+>>>>>>> local-changes
         setAnalysisError("Analysis failed. Your report was uploaded; you can try again later.");
         setRecentReports((prev) => prev.map((r) => (r.id === result.id ? { ...r, status: "Pending", color: "blue" as const } : r)));
       } finally {
         setAnalyzingReport(false);
       }
+<<<<<<< HEAD
     } catch (err) {
       console.error("Upload error:", err);
       setUploadError("Upload failed. Please check your connection and try again.");
     } finally {
       setUploading(false);
+=======
+    } catch {
+      setUploadError("Upload failed. Please check your connection and try again.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+>>>>>>> local-changes
     }
   };
 
@@ -288,6 +404,7 @@ export function DashboardPage() {
           </Card>
         </div>
 
+<<<<<<< HEAD
         {/* GPS Clinic Finder */}
         <div className="mb-12">
           <div className="text-center mb-6">
@@ -297,6 +414,8 @@ export function DashboardPage() {
           <MiniDashboardGPS />
         </div>
 
+=======
+>>>>>>> local-changes
         {/* PDF/Report Analysis Result */}
         {lastAnalysis && (
           <Card className="mb-12 border-2 border-emerald-200 shadow-xl bg-white">
@@ -375,6 +494,7 @@ export function DashboardPage() {
         <div id={METRICS_REF_ID} ref={metricsSectionRef} className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-slate-800">{t("dashboard.yourHealthMetrics")}</h2>
+<<<<<<< HEAD
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="border-blue-200 text-blue-700" onClick={openMedicineModal}>
                 <Pill className="size-4 mr-2" />
@@ -389,6 +509,12 @@ export function DashboardPage() {
                 Book Appointment
               </Button>
             </div>
+=======
+            <Button variant="outline" size="sm" className="border-emerald-200 text-emerald-700" onClick={openMetricsModal}>
+              <Pencil className="size-4 mr-2" />
+              Edit metrics
+            </Button>
+>>>>>>> local-changes
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {healthMetrics.map((metric, index) => {
@@ -426,6 +552,7 @@ export function DashboardPage() {
                   <Label className="col-span-1 text-slate-700">{m.label}</Label>
                   <Input
                     className="col-span-2"
+<<<<<<< HEAD
                     placeholder={
                       m.label === "Blood Pressure" ? "e.g. 120/80" :
                       m.label === "Heart Rate" ? "e.g. 72 bpm" :
@@ -433,6 +560,9 @@ export function DashboardPage() {
                       m.label === "Weight" ? "e.g. 70 kg" :
                       "e.g. 23.5"
                     }
+=======
+                    placeholder={m.label === "Blood Pressure" ? "e.g. 120/80" : m.label === "Heart Rate" ? "e.g. 72 bpm" : m.label === "Glucose" ? "e.g. 95 mg/dL" : "e.g. 23.5"}
+>>>>>>> local-changes
                     value={m.value}
                     onChange={(e) => setEditingMetrics((prev) => prev.map((mm, j) => (j === i ? { ...mm, value: e.target.value } : mm)))}
                   />
@@ -443,7 +573,11 @@ export function DashboardPage() {
               <Button variant="outline" onClick={resetMetricsToZero}>
                 Reset to empty
               </Button>
+<<<<<<< HEAD
               <Button onClick={saveMetrics} className="bg-emerald-600 hover:bg-emerald-700">
+=======
+              <Button onClick={handleMetricsSave} className="bg-emerald-600 hover:bg-emerald-700">
+>>>>>>> local-changes
                 Save
               </Button>
             </DialogFooter>
@@ -458,6 +592,7 @@ export function DashboardPage() {
               <DialogDescription>Enter your location and age so we can suggest doctors and consultation times near you.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+<<<<<<< HEAD
               <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <input
                   type="checkbox"
@@ -477,6 +612,12 @@ export function DashboardPage() {
                   <Input placeholder="e.g. New York, Boston, Chicago" value={scheduleLocation} onChange={(e) => setScheduleLocation(e.target.value)} />
                 </div>
               )}
+=======
+              <div className="grid gap-2">
+                <Label>Your location (city or area)</Label>
+                <Input placeholder="e.g. New York, Boston, Chicago" value={scheduleLocation} onChange={(e) => setScheduleLocation(e.target.value)} />
+              </div>
+>>>>>>> local-changes
               <div className="grid gap-2">
                 <Label>Your age</Label>
                 <Input type="number" min="1" max="120" placeholder="e.g. 35" value={scheduleAge} onChange={(e) => setScheduleAge(e.target.value)} />
@@ -486,7 +627,11 @@ export function DashboardPage() {
                 <Input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
               </div>
               <Button onClick={searchDoctors} className="w-full bg-blue-600 hover:bg-blue-700">
+<<<<<<< HEAD
                 {useGPS ? <><Map className="size-4 mr-2" /> Find nearby doctors</> : "Find doctors"}
+=======
+                Find doctors
+>>>>>>> local-changes
               </Button>
             </div>
             {matchingDoctors.length > 0 && (
@@ -496,6 +641,7 @@ export function DashboardPage() {
                   {matchingDoctors.map((doc) => (
                     <Card key={doc.id} className={`cursor-pointer border-2 ${selectedDoctor?.id === doc.id ? "border-emerald-500" : "border-slate-200"}`} onClick={() => { setSelectedDoctor(doc); setSelectedSlot(""); }}>
                       <CardContent className="p-4">
+<<<<<<< HEAD
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="font-semibold text-slate-800">{doc.name}</div>
@@ -510,6 +656,10 @@ export function DashboardPage() {
                             </div>
                           )}
                         </div>
+=======
+                        <div className="font-semibold text-slate-800">{doc.name}</div>
+                        <div className="text-sm text-slate-600">{doc.specialty}</div>
+>>>>>>> local-changes
                         <div className="flex items-center gap-2 mt-2 text-sm text-slate-700">
                           <Phone className="size-4" />
                           {doc.contactNo}
@@ -549,6 +699,7 @@ export function DashboardPage() {
           </DialogContent>
         </Dialog>
 
+<<<<<<< HEAD
         {/* Medicine Recommendations Modal */}
         <Dialog open={medicineModalOpen} onOpenChange={setMedicineModalOpen}>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -758,6 +909,8 @@ export function DashboardPage() {
           </DialogContent>
         </Dialog>
 
+=======
+>>>>>>> local-changes
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           {/* Recent Reports */}
           <div>
@@ -791,6 +944,7 @@ export function DashboardPage() {
 
           {/* Upcoming Appointments */}
           <div>
+<<<<<<< HEAD
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-slate-800">{t("dashboard.upcomingAppointments")}</h2>
               <Button
@@ -856,6 +1010,39 @@ export function DashboardPage() {
                   </Card>
                 );
               })}
+=======
+            <h2 className="text-2xl font-bold text-slate-800 mb-6">{t("dashboard.upcomingAppointments")}</h2>
+            <div className="space-y-4">
+              {upcomingAppointments.map((appointment, index) => (
+                <Card key={index} className="border border-slate-200 hover:border-emerald-300 transition-all shadow-md hover:shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="bg-gradient-to-r from-emerald-100 to-blue-100 p-3 rounded-lg">
+                        <Calendar className="size-6 text-blue-700" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-800 mb-1">{appointment.title}</h3>
+                        <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
+                          <Clock className="size-4" />
+                          {appointment.date} at {appointment.time}
+                        </div>
+                        <p className="text-sm text-slate-600">{appointment.doctor}</p>
+                        {appointment.contact && (
+                          <p className="text-sm text-slate-600 flex items-center gap-1 mt-1">
+                            <Phone className="size-3" /> {appointment.contact}
+                          </p>
+                        )}
+                        {appointment.venue && (
+                          <p className="text-sm text-slate-600 flex items-center gap-1 mt-1">
+                            <MapPin className="size-3" /> {appointment.venue}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+>>>>>>> local-changes
               <Button variant="outline" className="w-full border-blue-200 text-blue-700 hover:bg-blue-50" onClick={openScheduleModal}>
                 Schedule New Appointment
               </Button>

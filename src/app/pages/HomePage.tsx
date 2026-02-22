@@ -152,7 +152,11 @@ export function HomePage() {
 
               <div className="flex flex-col sm:flex-row gap-5 pt-6">
                 <Button className="bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white px-10 py-6 text-lg shadow-xl transition-all" asChild>
+<<<<<<< HEAD
                   <Link to="/signup">
+=======
+                  <Link to="/upload-report">
+>>>>>>> local-changes
                     {t("home.uploadReport")}
                     <ArrowRight className="ml-2 size-5" />
                   </Link>

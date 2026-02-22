@@ -55,6 +55,7 @@ function mapAnalysisResultToReportResult(a: AnalysisResult): ReportAnalysisResul
 }
 
 export async function uploadReport(file: File): Promise<{ id: string; title: string }> {
+<<<<<<< HEAD
   // Always try to upload, but provide fallback if backend is not configured
   const token = typeof window !== "undefined" ? localStorage.getItem("medisense_token") : null;
   
@@ -77,11 +78,28 @@ export async function uploadReport(file: File): Promise<{ id: string; title: str
   } else {
     // Fallback: Create a mock report for demo purposes
     console.log("Backend not configured, creating mock report for:", file.name);
+=======
+  if (!isBackendConfigured()) {
+>>>>>>> local-changes
     return Promise.resolve({
       id: "mock-" + Date.now(),
       title: file.name || "Uploaded Report",
     });
   }
+<<<<<<< HEAD
+=======
+  const token = typeof window !== "undefined" ? localStorage.getItem("medisense_token") : null;
+  const formData = new FormData();
+  formData.append("file", file);
+  const url = getBaseUrl() + "/api/reports/upload";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: token ? { Authorization: "Bearer " + token } : {},
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Upload failed");
+  return res.json();
+>>>>>>> local-changes
 }
 
 export async function analyzeReport(file: File): Promise<ReportAnalysisResult> {
@@ -92,6 +110,7 @@ export async function analyzeReport(file: File): Promise<ReportAnalysisResult> {
     }
     try {
       const text = await extractTextFromFile(file);
+<<<<<<< HEAD
       const analysis = analyzeReportText(text);
       return mapAnalysisResultToReportResult(analysis);
     } catch (error) {
@@ -119,6 +138,29 @@ export async function analyzeReport(file: File): Promise<ReportAnalysisResult> {
       throw new Error("Analysis failed. Please try again.");
     }
   }
+=======
+      if (!text || text.length < 10) {
+        return MOCK_ANALYSIS;
+      }
+      const analysis = await analyzeReportText(text);
+      return mapAnalysisResultToReportResult(analysis);
+    } catch (e) {
+      console.warn("Client-side analysis failed:", e);
+      return MOCK_ANALYSIS;
+    }
+  }
+  const token = typeof window !== "undefined" ? localStorage.getItem("medisense_token") : null;
+  const formData = new FormData();
+  formData.append("file", file);
+  const url = getBaseUrl() + "/api/reports/analyze";
+  const res = await fetch(url, {
+    method: "POST",
+    headers: token ? { Authorization: "Bearer " + token } : {},
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Analysis failed");
+  return res.json();
+>>>>>>> local-changes
 }
 
 export async function getReports(): Promise<ReportItem[]> {

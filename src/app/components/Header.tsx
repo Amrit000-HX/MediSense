@@ -13,9 +13,41 @@ export function Header() {
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const languageDropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+<<<<<<< HEAD
   const user = getStoredUser();
   const isLoggedIn = !!user;
 
+=======
+  const [user, setUser] = useState(getStoredUser());
+  const isLoggedIn = !!user;
+
+  // Update user state when authentication changes
+  useEffect(() => {
+    const checkAuth = () => {
+      const currentUser = getStoredUser();
+      setUser(currentUser);
+    };
+    
+    // Check immediately
+    checkAuth();
+    
+    // Set up interval to check for auth changes (for mock mode)
+    const interval = setInterval(checkAuth, 1000);
+    
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      checkAuth();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+>>>>>>> local-changes
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (languageDropdownRef.current && !languageDropdownRef.current.contains(e.target as Node)) {

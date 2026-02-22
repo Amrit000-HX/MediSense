@@ -18,6 +18,7 @@ const MEDICAL_TERMS = [
   "hemoglobin", "RBC", "WBC", "platelet", "TSH", "T3", "T4", "blood pressure", "BMI",
   "bilirubin", "ALT", "AST", "ALP", "urea", "BUN", "sodium", "potassium", "calcium",
   "vitamin D", "vitamin B12", "ferritin", "ESR", "CRP", "Hb", "RBC count", "platelets",
+<<<<<<< HEAD
   "hematocrit", "MCV", "MCH", "MCHC", "RDW", "neutrophils", "lymphocytes", "monocytes",
   "eosinophils", "basophils", "immature granulocytes", "absolute neutrophils", "uric acid",
   "phosphorus", "magnesium", "chloride", "total protein", "albumin", "globulin", "A/G ratio",
@@ -44,6 +45,10 @@ const REFERENCE_RANGES: Record<string, { min: number; max: number; unit: string 
   "diastolic": { min: 60, max: 80, unit: "mmHg" },
 };
 
+=======
+];
+
+>>>>>>> local-changes
 function pickFromReport(text: string, terms: string[]): string[] {
   const lower = text.toLowerCase();
   const found: string[] = [];
@@ -53,6 +58,7 @@ function pickFromReport(text: string, terms: string[]): string[] {
   return found.length ? found : ["General health markers"];
 }
 
+<<<<<<< HEAD
 function extractMedicalValues(text: string): Array<{label: string, value: string, status: "normal" | "attention" | "critical", note?: string}> {
   const findings: Array<{label: string, value: string, status: "normal" | "attention" | "critical", note?: string}> = [];
   
@@ -104,6 +110,11 @@ function extractMedicalValues(text: string): Array<{label: string, value: string
 /** Enhanced mock analysis with better value extraction */
 export async function analyzeReportText(text: string): Promise<AnalysisResult> {
   const apiKey = (import.meta as any).env?.VITE_OPENAI_API_KEY as string | undefined;
+=======
+/** Mock analysis: derives a plausible report from extracted text. Use real API (e.g. OpenAI) when VITE_OPENAI_API_KEY is set. */
+export async function analyzeReportText(text: string): Promise<AnalysisResult> {
+  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+>>>>>>> local-changes
   if (apiKey && text.length > 50) {
     try {
       return await analyzeWithOpenAI(text, apiKey);
@@ -111,7 +122,11 @@ export async function analyzeReportText(text: string): Promise<AnalysisResult> {
       console.warn("OpenAI analysis failed, using built-in analysis:", e);
     }
   }
+<<<<<<< HEAD
   return enhancedMockAnalyze(text);
+=======
+  return mockAnalyze(text);
+>>>>>>> local-changes
 }
 
 async function analyzeWithOpenAI(text: string, apiKey: string): Promise<AnalysisResult> {
@@ -169,6 +184,7 @@ Status: use "normal" for within range, "attention" for borderline, "critical" fo
   return parsed;
 }
 
+<<<<<<< HEAD
 function enhancedMockAnalyze(text: string): AnalysisResult {
   const extractedValues = extractMedicalValues(text);
   const termsFound = pickFromReport(text, MEDICAL_TERMS);
@@ -179,12 +195,23 @@ function enhancedMockAnalyze(text: string): AnalysisResult {
     : "We've processed your medical document. The analysis below provides a structured overview of the findings. For precise interpretation of values and clinical significance, please share with your healthcare provider.";
 
   const findings = extractedValues.length > 0 ? extractedValues : termsFound.slice(0, 6).map((label, i) => ({
+=======
+function mockAnalyze(text: string): AnalysisResult {
+  const termsFound = pickFromReport(text, MEDICAL_TERMS);
+  const hasNumbers = /\d+\.?\d*/.test(text);
+  const summary = hasNumbers
+    ? `Your report appears to include lab values and health metrics. We identified references to: ${termsFound.slice(0, 5).join(", ")}. The analysis below is a structured interpretation based on the extracted text. Always confirm with your doctor.`
+    : "We've processed your document. Below is a structured overview. For precise interpretation of values and ranges, please share with your healthcare provider.";
+
+  const findings = termsFound.slice(0, 6).map((label, i) => ({
+>>>>>>> local-changes
     label,
     value: "See report",
     status: (["normal", "attention", "normal"] as const)[i % 3],
     note: "Value and range should be verified with your doctor.",
   }));
 
+<<<<<<< HEAD
   // Enhanced symptom suggestions based on findings
   const symptoms: string[] = [];
   if (extractedValues.some(v => v.label === "glucose" && v.status !== "normal")) {
@@ -226,6 +253,32 @@ function enhancedMockAnalyze(text: string): AnalysisResult {
       : "Follow up on any abnormal values as recommended by your doctor.",
     "Inform your doctor of any new symptoms or health concerns.",
     "Consider bringing a list of questions to your next medical appointment.",
+=======
+  const symptoms: string[] = [
+    "Fatigue or low energy",
+    "Headaches or lightheadedness",
+    "Shortness of breath on exertion",
+    "Unintentional weight changes",
+  ];
+
+  const prevention: string[] = [
+    "Maintain a balanced diet rich in fruits, vegetables, whole grains, and lean protein.",
+    "Limit added sugars, deep-fried foods, and highly processed snacks.",
+    "Aim for at least 30 minutes of moderate physical activity most days of the week.",
+    "Avoid smoking and limit alcohol intake as advised by your doctor.",
+  ];
+
+  const futureSuggestions: string[] = [
+    "Repeat key tests at the interval recommended by your doctor to monitor trends over time.",
+    "Share this report and any changes in symptoms with your healthcare provider.",
+    "Keep a personal health log of lab results, medications, and major symptoms.",
+  ];
+
+  const recommendations = [
+    "Discuss these results with your healthcare provider for personalized advice.",
+    "Keep a copy of this report for your records and future visits.",
+    "If any values were flagged, schedule a follow-up as recommended.",
+>>>>>>> local-changes
   ];
 
   return {
@@ -235,6 +288,10 @@ function enhancedMockAnalyze(text: string): AnalysisResult {
     prevention,
     futureSuggestions,
     recommendations,
+<<<<<<< HEAD
     disclaimer: "This AI-generated analysis is for informational purposes only and does not replace professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or qualified healthcare provider with any questions about your medical condition or test results.",
+=======
+    disclaimer: "This analysis is for informational purposes only and does not replace professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or qualified health provider with any questions.",
+>>>>>>> local-changes
   };
 }

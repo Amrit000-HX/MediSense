@@ -1,17 +1,28 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+<<<<<<< HEAD
 import { Mail, Lock, ArrowRight } from "lucide-react";
+=======
+import { Mail, Lock, ArrowRight, Shield } from "lucide-react";
+>>>>>>> local-changes
 import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Logo } from "../components/Logo";
+<<<<<<< HEAD
 import { login } from "../api/auth";
+=======
+import { login, sendLoginOTP, verifyLoginOTP } from "../api/auth";
+import { sendOTP, verifyOTP } from "../api/otp";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/input-otp";
+>>>>>>> local-changes
 
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+<<<<<<< HEAD
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,11 +35,76 @@ export function LoginPage() {
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
+=======
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"credentials" | "otp">("credentials");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sendingOTP, setSendingOTP] = useState(false);
+
+  const handleSendOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
+    }
+    setSendingOTP(true);
+    try {
+      // Send OTP via EmailJS
+      const otpResult = await sendOTP(email);
+      if (!otpResult.success) {
+        setError(otpResult.message);
+        return;
+      }
+      
+      // Check if this is mock mode (OTP is included in message)
+      if (otpResult.message.includes('mock mode')) {
+        // Show the OTP in the error message for testing
+        setError(`⚠️ ${otpResult.message}`);
+      }
+      
+      // Also notify backend
+      try {
+        await sendLoginOTP(email);
+      } catch (backendErr) {
+        console.warn("Backend notification failed, but OTP was generated:", backendErr);
+      }
+      
+      setStep("otp");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send OTP");
+    } finally {
+      setSendingOTP(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length !== 6) {
+      setError("Please enter a valid 6-digit OTP");
+      return;
+    }
+    setLoading(true);
+    try {
+      await verifyLoginOTP(email, otp, password);
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "OTP verification failed");
+>>>>>>> local-changes
     } finally {
       setLoading(false);
     }
   };
 
+<<<<<<< HEAD
+=======
+  const handleBackToCredentials = () => {
+    setStep("credentials");
+    setOtp("");
+    setError("");
+  };
+
+>>>>>>> local-changes
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 relative overflow-hidden flex items-center justify-center py-12 px-4">
       <div className="absolute inset-0 opacity-5" style={{
@@ -50,6 +126,7 @@ export function LoginPage() {
               <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">{error}</div>
             )}
 
+<<<<<<< HEAD
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">{t("auth.email")}</label>
@@ -100,6 +177,123 @@ export function LoginPage() {
                 <ArrowRight className="ml-2 size-5" />
               </Button>
             </form>
+=======
+            {step === "credentials" ? (
+              <form className="space-y-6" onSubmit={handleSendOTP}>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">{t("auth.email")}</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full pl-10 pr-4 py-3 border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">{t("auth.password")}</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-4 py-3 border border-emerald-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center">
+                    <input type="checkbox" className="rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500" />
+                    <span className="ml-2 text-sm text-slate-600">{t("auth.rememberMe")}</span>
+                  </label>
+                  <Link to="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                    {t("auth.forgotPassword")}
+                  </Link>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={sendingOTP}
+                  className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white py-3 font-medium"
+                >
+                  {sendingOTP ? "Sending OTP..." : "Send OTP"}
+                  <ArrowRight className="ml-2 size-5" />
+                </Button>
+              </form>
+            ) : (
+              <form className="space-y-6" onSubmit={handleVerifyOTP}>
+                <div className="text-center mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-full mb-4">
+                    <Shield className="size-8 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2">Enter Verification Code</h2>
+                  <p className="text-slate-600 text-sm">
+                    We've sent a 6-digit code to <strong>{email}</strong>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3 text-center">
+                    Enter OTP Code
+                  </label>
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={otp}
+                      onChange={(value) => setOtp(value)}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleBackToCredentials}
+                    className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-50"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={loading || otp.length !== 6}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white py-3 font-medium"
+                  >
+                    {loading ? "Verifying..." : "Verify & Login"}
+                    <ArrowRight className="ml-2 size-5" />
+                  </Button>
+                </div>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={handleSendOTP}
+                    className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                  >
+                    Resend OTP
+                  </button>
+                </div>
+              </form>
+            )}
+>>>>>>> local-changes
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
