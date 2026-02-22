@@ -1,19 +1,16 @@
-<<<<<<< HEAD
-import express from "express";
-import cors from "cors";
-import multer from "multer";
-import crypto from "crypto";
-=======
 const express = require("express");
 const cors = require("cors");
 const crypto = require("node:crypto");
 const multer = require("multer");
+const { MongoClient, ServerApiVersion } = require("mongodb");
 const mongoose = require("mongoose");
+const mammoth = require("mammoth");
+const pdf = require("pdfjs-dist");
+const Tesseract = require("tesseract.js");
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Import MongoDB models
-const { User, Token, OTP, Contact, Report, HealthMetrics, Appointment, VoiceAnalysis } = require('./models');
->>>>>>> local-changes
+const { User, OTP, Contact, Report, HealthMetrics, Appointment, VoiceAnalysis } = require('./models');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,44 +18,19 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-<<<<<<< HEAD
-const upload = multer({ storage: multer.memoryStorage() });
-
-// In-memory stores
-const users = new Map();
-const tokens = new Map();
-const contacts = [];
-const reportsByUser = new Map();
-=======
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/medisense";
 
-// Connect to MongoDB with better error handling
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+// Connect to MongoDB
+mongoose.connect(MONGODB_URI)
   .then(() => {
-    console.log("✅ Connected to MongoDB successfully");
-    console.log(`📊 Database: ${mongoose.connection.name}`);
+    console.log("Connected to MongoDB successfully");
   })
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err.message);
-    console.error("💡 Make sure MongoDB is running or set MONGODB_URI environment variable");
-    // Don't exit - allow server to start but endpoints will fail gracefully
+    console.error("MongoDB connection error:", err);
   });
 
-// Handle MongoDB connection events
-mongoose.connection.on('disconnected', () => {
-  console.warn("⚠️ MongoDB disconnected");
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error("❌ MongoDB error:", err);
-});
-
 // Default data for fallback
->>>>>>> local-changes
 const DEFAULT_REPORTS = [
   { id: "1", title: "Blood Test Results", date: "2 days ago", status: "Reviewed", color: "emerald" },
   { id: "2", title: "Cholesterol Panel", date: "1 week ago", status: "Pending", color: "blue" },
@@ -71,15 +43,22 @@ const METRICS = [
   { label: "BMI", value: "23.5", status: "Healthy", color: "blue" },
 ];
 const APPOINTMENTS = [
-  { title: "Annual Checkup", date: "Mar 15, 2026", time: "10:00 AM", doctor: "Dr. Sarah Johnson" },
-  { title: "Follow-up Consultation", date: "Mar 22, 2026", time: "2:30 PM", doctor: "Dr. Michael Chen" },
+  { id: "1", title: "General Checkup", date: "2024-01-15", time: "10:00 AM", doctor: "Dr. Sarah Johnson", status: "upcoming" },
+  { id: "2", title: "Cardiology Consultation", date: "2024-01-20", time: "2:30 PM", doctor: "Dr. Michael Chen", status: "upcoming" },
+  { id: "3", title: "Blood Test", date: "2024-01-25", time: "9:00 AM", doctor: "Dr. Emily Davis", status: "scheduled" },
+];
+const DOCTORS = [
+  { id: "1", name: "Dr. Sarah Johnson", specialty: "General Practitioner", rating: 4.8, experience: "10 years", image: "https://picsum.photos/seed/doctor1/100/100" },
+  { id: "2", name: "Dr. Michael Chen", specialty: "Cardiologist", rating: 4.9, experience: "15 years", image: "https://picsum.photos/seed/doctor2/100/100" },
+  { id: "3", name: "Dr. Emily Davis", specialty: "Endocrinologist", rating: 4.7, experience: "12 years", image: "https://picsum.photos/seed/doctor3/100/100" },
 ];
 
+// Generate random token
 function genToken() {
-  return "tk_" + crypto.randomBytes(24).toString("hex");
+  return crypto.randomBytes(32).toString("hex");
 }
 
-<<<<<<< HEAD
+// Get user ID from token
 function getUserId(req) {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith("Bearer ")) return null;
@@ -87,26 +66,8 @@ function getUserId(req) {
   return tokens.get(token) || null;
 }
 
-// POST /api/auth/signup
-app.post("/api/auth/signup", (req, res) => {
-=======
-// Get user ID from token using MongoDB
-async function getUserId(req) {
-  try {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith("Bearer ")) return null;
-  const token = auth.slice(7);
-    
-    // Find token in MongoDB
-    const tokenDoc = await Token.findOne({ token, expiresAt: { $gt: new Date() } });
-    if (!tokenDoc) return null;
-    
-    return tokenDoc.userId;
-  } catch (error) {
-    console.error("Error getting user ID from token:", error);
-    return null;
-  }
-}
+// In-memory token store (for now)
+const tokens = new Map();
 
 // POST /api/auth/send-signup-otp - Send OTP for signup
 app.post("/api/auth/send-signup-otp", async (req, res) => {
@@ -213,14 +174,8 @@ app.post("/api/auth/verify-otp-signup", async (req, res) => {
     // Clear OTP
     await OTP.deleteOne({ email: emailLower, type: "signup" });
 
-    // Create token in MongoDB
     const token = genToken();
-    await Token.create({
-      token,
-      userId: id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-    });
-    
+    tokens.set(token, id);
     res.json({
       token,
       user: { id, name: user.name, email: user.email },
@@ -315,13 +270,8 @@ app.post("/api/auth/verify-otp-login", async (req, res) => {
     }
 
     // OTP and password verified, proceed with login
-    // Create token in MongoDB
     const token = genToken();
-    await Token.create({
-      token,
-      userId: record.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
-    });
+    tokens.set(token, record.id);
     
     // Clear OTP
     await OTP.deleteOne({ email: emailLower, type: "login" });
@@ -338,116 +288,57 @@ app.post("/api/auth/verify-otp-login", async (req, res) => {
 
 // POST /api/auth/signup (keep for backward compatibility, but now requires OTP)
 app.post("/api/auth/signup", async (req, res) => {
-  try {
->>>>>>> local-changes
   const { name, email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password required" });
   }
-<<<<<<< HEAD
-  if (users.has(email.toLowerCase())) {
-    return res.status(400).json({ message: "Email already registered" });
-  }
-  const id = "u_" + crypto.randomBytes(8).toString("hex");
-  const user = { id, name: name || "User", email: email.toLowerCase() };
-  users.set(email.toLowerCase(), { ...user, password });
-  const token = genToken();
-  tokens.set(token, id);
-  res.json({ token, user: { id, name: user.name, email: user.email } });
-});
-
-// POST /api/auth/login
-app.post("/api/auth/login", (req, res) => {
-=======
-    
-    const emailLower = email.toLowerCase();
-    const existingUser = await User.findOne({ email: emailLower });
+  
+  try {
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-    return res.status(400).json({ message: "Email already registered" });
-  }
-    
-  const id = "u_" + crypto.randomBytes(8).toString("hex");
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    const id = "u_" + crypto.randomBytes(8).toString("hex");
     const user = await User.create({
       id,
       name: name || "User",
-      email: emailLower,
+      email: email.toLowerCase(),
       password,
       createdAt: new Date()
     });
-    
-  const token = genToken();
-    await Token.create({
+
+    const token = genToken();
+    tokens.set(token, id);
+    res.json({
       token,
-      userId: id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      user: { id, name: user.name, email: user.email },
     });
-    
-  res.json({ token, user: { id, name: user.name, email: user.email } });
   } catch (error) {
     console.error("Error in signup:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// POST /api/auth/login (keep for backward compatibility, but now requires OTP)
+// POST /api/auth/login (keep for backward compatibility)
 app.post("/api/auth/login", async (req, res) => {
-  try {
->>>>>>> local-changes
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password required" });
   }
-<<<<<<< HEAD
-  const record = users.get(email.toLowerCase());
-  if (!record || record.password !== password) {
-    return res.status(401).json({ message: "Invalid email or password" });
-  }
-  const token = genToken();
-  tokens.set(token, record.id);
-=======
-    
-    const emailLower = email.toLowerCase();
-    const record = await User.findOne({ email: emailLower });
-  if (!record || record.password !== password) {
-    return res.status(401).json({ message: "Invalid email or password" });
-  }
-    
-  const token = genToken();
-    await Token.create({
+
+  try {
+    const record = await User.findOne({ email: email.toLowerCase() });
+    if (!record || record.password !== password) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const token = genToken();
+    tokens.set(token, record.id);
+    res.json({
       token,
-      userId: record.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      user: { id: record.id, name: record.name, email: record.email },
     });
-    
->>>>>>> local-changes
-  res.json({
-    token,
-    user: { id: record.id, name: record.name, email: record.email },
-  });
-<<<<<<< HEAD
-});
-
-// POST /api/contact
-app.post("/api/contact", (req, res) => {
-  const { firstName, lastName, email, phone, subject, message } = req.body || {};
-  contacts.push({ firstName, lastName, email, phone, subject, message, at: new Date().toISOString() });
-  res.json({ success: true, message: "Message received. We'll get back to you within 24 hours." });
-});
-
-// POST /api/reports/upload
-app.post("/api/reports/upload", upload.single("file"), (req, res) => {
-  const userId = getUserId(req);
-  const file = req.file;
-  const title = file?.originalname || "Uploaded Report";
-  const id = "r_" + Date.now();
-  const report = { id, title, date: "Just now", status: "Pending", color: "blue" };
-  if (userId) {
-    const list = reportsByUser.get(userId) || [];
-    list.unshift(report);
-    reportsByUser.set(userId, list);
-  }
-  res.json({ id, title });
-=======
   } catch (error) {
     console.error("Error in login:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -456,718 +347,123 @@ app.post("/api/reports/upload", upload.single("file"), (req, res) => {
 
 // POST /api/contact
 app.post("/api/contact", async (req, res) => {
+  const { name, email, message } = req.body || {};
+  if (!name || !email || !message) {
+    return res.status(400).json({ message: "Name, email, and message required" });
+  }
+
   try {
-  const { firstName, lastName, email, phone, subject, message } = req.body || {};
-    
-    if (!email || !message) {
-      return res.status(400).json({ success: false, message: "Email and message are required" });
-    }
-    
-    await Contact.create({
-      firstName,
-      lastName,
-      name: firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || "Anonymous",
+    const contact = await Contact.create({
+      name,
       email,
-      phone,
-      subject,
       message,
       createdAt: new Date()
     });
-    
-  res.json({ success: true, message: "Message received. We'll get back to you within 24 hours." });
+
+    console.log("Contact form submission:", contact);
+    res.json({ success: true, message: "Message sent successfully" });
   } catch (error) {
-    console.error("Error saving contact:", error);
-    return res.status(500).json({ success: false, message: "Internal server error" });
+    console.error("Error in contact:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
 // POST /api/reports/upload
 app.post("/api/reports/upload", upload.single("file"), async (req, res) => {
   try {
-    const userId = await getUserId(req);
-  const file = req.file;
-    
-    if (!file) {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    
-    const title = file.originalname || "Uploaded Report";
-  const id = "r_" + Date.now();
-    const date = "Just now";
-    
-  if (userId) {
-      await Report.create({
-        userId,
-        id,
-        title,
-        date,
-        status: "Pending",
-        color: "blue",
-        fileName: file.originalname,
-        fileType: file.mimetype,
-        uploadedAt: new Date()
-      });
-    }
-    
-    res.json({ id, title });
+
+    const report = await Report.create({
+      userId,
+      fileName: req.file.originalname,
+      fileType: req.file.mimetype,
+      analysis: { status: "uploaded", message: "Report uploaded successfully" },
+      uploadedAt: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: "Report uploaded successfully",
+      report: {
+        id: report._id,
+        fileName: report.fileName,
+        fileType: report.fileType,
+        uploadedAt: report.uploadedAt
+      }
+    });
   } catch (error) {
     console.error("Error uploading report:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
->>>>>>> local-changes
-});
-
-// POST /api/reports/analyze - analyze uploaded PDF/report (mock AI response)
-app.post("/api/reports/analyze", upload.single("file"), (req, res) => {
-  const file = req.file;
-  const filename = file?.originalname || "report";
-  const isPdf = filename.toLowerCase().endsWith(".pdf");
-  const isImage = file?.mimetype?.startsWith("image/");
-  res.json({
-    summary: isPdf
-      ? "Your report has been processed. Key biomarkers and findings have been extracted and interpreted below."
-      : isImage
-        ? "Your image report has been analyzed. Please review the findings and recommendations."
-        : "Your document has been analyzed. Summary and recommendations are provided below.",
-    keyFindings: [
-      "Document type: " + (isPdf ? "PDF" : isImage ? "Image" : "Text/Other"),
-      "All major sections were detected and parsed successfully.",
-      "No critical abnormalities flagged in the reviewed ranges.",
-      "Values within normal reference ranges where applicable.",
-    ],
-    recommendations: [
-      "Discuss these results with your healthcare provider at your next visit.",
-      "Keep a copy of this report for your records.",
-      "Schedule follow-up tests if your doctor has recommended them.",
-    ],
-    status: "Reviewed",
-  });
 });
 
 // GET /api/reports
-<<<<<<< HEAD
-app.get("/api/reports", (req, res) => {
-  const userId = getUserId(req);
-  const list = userId ? (reportsByUser.get(userId) || []) : [];
-  const combined = list.length ? list : DEFAULT_REPORTS;
-  res.json(combined);
+app.get("/api/reports", async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const reports = await Report.find({ userId }).sort({ uploadedAt: -1 });
+    res.json(reports);
+  } catch (error) {
+    console.error("Error fetching reports:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 // POST /api/voice/analyze
-app.post("/api/voice/analyze", upload.single("audio"), (req, res) => {
-  res.json({
-    symptoms: ["Headache", "Fatigue", "Mild fever"],
-    possibleConditions: ["Common Cold", "Stress-related headache", "Dehydration"],
-    recommendations: [
-      "Rest and hydrate well",
-      "Monitor temperature",
-      "Consult a doctor if symptoms persist beyond 3 days",
-    ],
-=======
-app.get("/api/reports", async (req, res) => {
+app.post("/api/voice/analyze", upload.single("audio"), async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    
-    if (userId) {
-      const reports = await Report.find({ userId })
-        .sort({ uploadedAt: -1 })
-        .limit(50)
-        .lean();
-      
-      // Format reports for frontend
-      const formattedReports = reports.map(r => ({
-        id: r.id,
-        title: r.title,
-        date: r.date || "Recently",
-        status: r.status || "Pending",
-        color: r.color || "blue"
-      }));
-      
-      return res.json(formattedReports.length > 0 ? formattedReports : DEFAULT_REPORTS);
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
     }
-    
-    // Return default reports if not logged in
-    res.json(DEFAULT_REPORTS);
-  } catch (error) {
-    console.error("Error fetching reports:", error);
-    return res.json(DEFAULT_REPORTS); // Fallback to defaults on error
-  }
-});
 
-// POST /api/voice/analyze - Analyze voice transcript
-app.post("/api/voice/analyze", async (req, res) => {
-  try {
-    const { transcript, language } = req.body || {};
-    
-    if (!transcript || typeof transcript !== "string") {
-      return res.status(400).json({ message: "Transcript is required" });
+    if (!req.file) {
+      return res.status(400).json({ message: "No audio file uploaded" });
     }
-    
-    const userId = await getUserId(req); // Get user if authenticated
 
-  // Normalize text - remove extra spaces and convert to lowercase
-  const normalizedText = transcript.trim().toLowerCase().replace(/\s+/g, " ");
-  const words = normalizedText.split(/\s+/);
-  
-  // Detect if text contains non-Latin characters (likely non-English)
-  const hasNonLatinChars = /[^\x00-\x7F]/.test(transcript);
-  // Use non-Latin character detection as primary indicator, language code as secondary
-  const isLikelyNonEnglish = hasNonLatinChars;
-  
-  // Comprehensive symptom detection with multiple language support
-  // Using flexible pattern matching that works across languages
-  const symptomPatterns = [
-    // Head-related
-    { patterns: ["headache", "head ache", "head pain", "cephalalgia", "dolor de cabeza", "mal de tête", "mal di testa", "सिरदर्द", "头痛"], symptom: "Headache", category: "neurological" },
-    { patterns: ["migraine", "throbbing head", "pulsating head"], symptom: "Migraine", category: "neurological" },
-    { patterns: ["dizziness", "dizzy", "vertigo", "mareo", "vertige", "vertigine", "चक्कर"], symptom: "Dizziness", category: "neurological" },
-    
-    // Fever and temperature
-    { patterns: ["fever", "high temperature", "feverish", "fiebre", "fièvre", "febbre", "बुखार", "发烧"], symptom: "Fever", category: "systemic" },
-    { patterns: ["chills", "shivering", "shivers", "escalofríos", "frissons", "brividi", "ठंड लगना"], symptom: "Chills", category: "systemic" },
-    { patterns: ["hot", "burning", "heat", "caliente", "chaud", "caldo"], symptom: "Elevated body temperature", category: "systemic" },
-    
-    // Respiratory
-    { patterns: ["cough", "coughing", "tos", "toux", "tosse", "खांसी", "咳嗽"], symptom: "Cough", category: "respiratory" },
-    { patterns: ["sore throat", "throat pain", "throat hurts", "dolor de garganta", "mal de gorge", "mal di gola", "गले में दर्द", "喉咙痛"], symptom: "Sore throat", category: "respiratory" },
-    { patterns: ["shortness of breath", "breathing difficulty", "difficulty breathing", "dificultad para respirar", "difficulté à respirer", "difficoltà respiratoria", "सांस लेने में तकलीफ", "呼吸困难"], symptom: "Shortness of breath", category: "respiratory" },
-    { patterns: ["wheezing", "wheeze", "sibilancia", "sifflement", "sibilo"], symptom: "Wheezing", category: "respiratory" },
-    { patterns: ["congestion", "stuffy nose", "blocked nose", "congestión nasal", "nez bouché", "naso chiuso", "नाक बंद", "鼻塞"], symptom: "Nasal congestion", category: "respiratory" },
-    { patterns: ["runny nose", "nasal discharge", "nariz que moquea", "nez qui coule", "naso che cola", "नाक बहना", "流鼻涕"], symptom: "Runny nose", category: "respiratory" },
-    { patterns: ["sneezing", "sneeze", "estornudos", "éternuements", "starnuti", "छींक", "打喷嚏"], symptom: "Sneezing", category: "respiratory" },
-    
-    // Chest and cardiac
-    { patterns: ["chest pain", "chest discomfort", "dolor en el pecho", "douleur thoracique", "dolore al petto", "छाती में दर्द", "胸痛"], symptom: "Chest pain", category: "cardiac" },
-    { patterns: ["chest tightness", "tight chest", "opresión en el pecho", "oppression thoracique", "oppressione al petto"], symptom: "Chest tightness", category: "cardiac" },
-    { patterns: ["heart palpitations", "palpitations", "palpitaciones", "palpitations", "palpitazioni", "दिल की धड़कन"], symptom: "Heart palpitations", category: "cardiac" },
-    
-    // Gastrointestinal
-    { patterns: ["nausea", "nauseous", "feeling sick", "náuseas", "nausées", "nausea", "मतली", "恶心"], symptom: "Nausea", category: "gastrointestinal" },
-    { patterns: ["vomiting", "vomit", "throwing up", "vómitos", "vomissements", "vomito", "उल्टी", "呕吐"], symptom: "Vomiting", category: "gastrointestinal" },
-    { patterns: ["stomach pain", "abdominal pain", "belly pain", "dolor de estómago", "douleur abdominale", "mal di stomaco", "पेट दर्द", "胃痛"], symptom: "Abdominal pain", category: "gastrointestinal" },
-    { patterns: ["stomach ache", "stomach discomfort", "malestar estomacal", "malaise gastrique"], symptom: "Stomach discomfort", category: "gastrointestinal" },
-    { patterns: ["diarrhea", "loose stools", "diarrea", "diarrhée", "diarrea", "दस्त", "腹泻"], symptom: "Diarrhea", category: "gastrointestinal" },
-    { patterns: ["constipation", "constipación", "constipation", "stipsi", "कब्ज", "便秘"], symptom: "Constipation", category: "gastrointestinal" },
-    { patterns: ["bloating", "bloated", "hinchazón", "ballonnement", "gonfiore", "सूजन"], symptom: "Bloating", category: "gastrointestinal" },
-    
-    // Musculoskeletal
-    { patterns: ["joint pain", "joint ache", "dolor articular", "douleur articulaire", "dolore articolare", "जोड़ों में दर्द", "关节痛"], symptom: "Joint pain", category: "musculoskeletal" },
-    { patterns: ["muscle pain", "muscle ache", "dolor muscular", "douleur musculaire", "dolore muscolare", "मांसपेशियों में दर्द", "肌肉疼痛"], symptom: "Muscle pain", category: "musculoskeletal" },
-    { patterns: ["back pain", "backache", "dolor de espalda", "mal de dos", "mal di schiena", "पीठ दर्द", "背痛"], symptom: "Back pain", category: "musculoskeletal" },
-    { patterns: ["neck pain", "neck ache", "dolor de cuello", "mal au cou", "mal di collo"], symptom: "Neck pain", category: "musculoskeletal" },
-    
-    // Fatigue and weakness
-    { patterns: ["fatigue", "tired", "exhausted", "weak", "fatiga", "fatigué", "stanco", "थकान", "疲劳"], symptom: "Fatigue", category: "systemic" },
-    { patterns: ["weakness", "weak", "debilidad", "faiblesse", "debolezza", "कमजोरी", "虚弱"], symptom: "Weakness", category: "systemic" },
-    { patterns: ["lethargy", "lethargic", "letargo", "léthargie", "letargia"], symptom: "Lethargy", category: "systemic" },
-    
-    // Skin
-    { patterns: ["rash", "skin rash", "erupción", "éruption", "eruzione", "दाने", "皮疹"], symptom: "Rash", category: "dermatological" },
-    { patterns: ["itchy", "itching", "prurito", "démangeaison", "prurito", "खुजली", "瘙痒"], symptom: "Itching", category: "dermatological" },
-    { patterns: ["red skin", "redness", "enrojecimiento", "rougeur", "arrossamento"], symptom: "Skin redness", category: "dermatological" },
-    { patterns: ["hives", "urticaria", "urticaire", "orticaria"], symptom: "Hives", category: "dermatological" },
-    
-    // Other common symptoms
-    { patterns: ["pain", "hurts", "ache", "dolor", "douleur", "dolore", "दर्द", "疼痛"], symptom: "Pain", category: "general" },
-    { patterns: ["swelling", "swollen", "hinchazón", "gonflement", "gonfiore", "सूजन", "肿胀"], symptom: "Swelling", category: "general" },
-    { patterns: ["loss of appetite", "no appetite", "pérdida de apetito", "perte d'appétit", "perdita di appetito", "भूख न लगना"], symptom: "Loss of appetite", category: "systemic" },
-    { patterns: ["insomnia", "sleeplessness", "insomnio", "insomnie", "insonnia", "अनिद्रा", "失眠"], symptom: "Insomnia", category: "neurological" },
-  ];
-
-  // Detect symptoms using flexible pattern matching
-  const foundSymptoms = [];
-  const symptomSet = new Set();
-  const symptomCategories = new Set();
-  
-  for (const { patterns, symptom, category } of symptomPatterns) {
-    for (const pattern of patterns) {
-      let matched = false;
-      
-      // Escape special regex characters
-      const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
-      // Try multiple matching strategies for better detection
-      // 1. Word boundary matching (most accurate for English)
-      const wordBoundaryRegex = new RegExp(`\\b${escapedPattern}\\b`, 'i');
-      if (wordBoundaryRegex.test(normalizedText)) {
-        matched = true;
-      }
-      
-      // 2. Flexible substring matching (works for all languages and partial matches)
-      if (!matched) {
-        const flexibleRegex = new RegExp(escapedPattern, 'i');
-        if (flexibleRegex.test(normalizedText)) {
-          matched = true;
-        }
-      }
-      
-      // 3. Also check individual words if pattern has multiple words
-      if (!matched && pattern.includes(' ')) {
-        const words = pattern.split(/\s+/);
-        // Check if all words in the pattern appear in the text (in any order)
-        const allWordsFound = words.every(word => {
-          const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-          return wordRegex.test(normalizedText) || normalizedText.includes(word.toLowerCase());
-        });
-        if (allWordsFound) {
-          matched = true;
-        }
-      }
-      
-      if (matched && !symptomSet.has(symptom)) {
-        foundSymptoms.push(symptom);
-        symptomSet.add(symptom);
-        symptomCategories.add(category);
-        break; // Found this symptom, move to next
-      }
-    }
-  }
-  
-  // Enhanced fallback: Try to detect symptoms from context even without exact matches
-  if (foundSymptoms.length === 0) {
-    // Look for common symptom indicators in any language
-    const contextIndicators = [
-      // Pain indicators
-      { 
-        patterns: ["pain", "hurt", "ache", "sore", "dolor", "douleur", "dolore", "दर्द", "痛", "болит", "ağrı"],
-        symptom: "Pain",
-        category: "general"
-      },
-      // Fever indicators  
-      {
-        patterns: ["fever", "temperature", "hot", "burning", "fiebre", "fièvre", "febbre", "बुखार", "发烧", "температура", "ateş"],
-        symptom: "Fever",
-        category: "systemic"
-      },
-      // Fatigue indicators
-      {
-        patterns: ["tired", "exhausted", "weak", "fatigue", "fatiga", "fatigué", "stanco", "थकान", "疲劳", "усталость", "yorgun"],
-        symptom: "Fatigue",
-        category: "systemic"
-      },
-      // Cough indicators
-      {
-        patterns: ["cough", "tos", "toux", "tosse", "खांसी", "咳嗽", "кашель", "öksürük"],
-        symptom: "Cough",
-        category: "respiratory"
-      },
-      // Headache indicators
-      {
-        patterns: ["head", "cabeza", "tête", "testa", "सिर", "头", "голова", "baş"],
-        symptom: "Headache",
-        category: "neurological"
-      },
-      // Stomach indicators
-      {
-        patterns: ["stomach", "belly", "estómago", "estomac", "stomaco", "पेट", "胃", "желудок", "mide"],
-        symptom: "Stomach discomfort",
-        category: "gastrointestinal"
-      },
-      // Nausea indicators
-      {
-        patterns: ["nausea", "sick", "náuseas", "nausées", "nausea", "मतली", "恶心", "тошнота", "bulantı"],
-        symptom: "Nausea",
-        category: "gastrointestinal"
-      }
-    ];
-    
-    for (const { patterns, symptom, category } of contextIndicators) {
-      for (const pattern of patterns) {
-        // Use flexible matching for context indicators
-        const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        if (regex.test(normalizedText) && !symptomSet.has(symptom)) {
-          foundSymptoms.push(symptom);
-          symptomSet.add(symptom);
-          symptomCategories.add(category);
-          break;
-        }
-      }
-    }
-  }
-
-  // Enhanced fallback: Try even more flexible matching
-  if (foundSymptoms.length === 0) {
-    console.log("No symptoms detected. Transcript:", transcript.substring(0, 200));
-    console.log("Normalized text:", normalizedText.substring(0, 200));
-    console.log("Language:", language);
-    console.log("Has non-Latin chars:", hasNonLatinChars);
-    
-    // Try very flexible word-by-word matching
-    const veryFlexiblePatterns = [
-      { words: ["pain", "hurts", "hurt", "aching", "ache", "sore", "dolor", "douleur", "दर्द", "痛"], symptom: "Pain" },
-      { words: ["fever", "temperature", "hot", "burning", "feverish", "fiebre", "fièvre", "बुखार", "发烧"], symptom: "Fever" },
-      { words: ["cough", "coughing", "tos", "toux", "tosse", "खांसी", "咳嗽"], symptom: "Cough" },
-      { words: ["headache", "head", "headache", "cabeza", "tête", "सिर", "头"], symptom: "Headache" },
-      { words: ["stomach", "belly", "abdominal", "estómago", "estomac", "पेट", "胃"], symptom: "Stomach discomfort" },
-      { words: ["tired", "fatigue", "exhausted", "weak", "fatiga", "fatigué", "थकान", "疲劳"], symptom: "Fatigue" },
-      { words: ["nausea", "nauseous", "sick", "náuseas", "nausées", "मतली", "恶心"], symptom: "Nausea" },
-      { words: ["throat", "sore", "garganta", "gorge", "गले", "喉咙"], symptom: "Sore throat" },
-      { words: ["dizzy", "dizziness", "vertigo", "mareo", "vertige", "चक्कर"], symptom: "Dizziness" },
-      { words: ["chills", "shivering", "shivers", "escalofríos", "frissons", "ठंड"], symptom: "Chills" },
-    ];
-    
-    for (const { words, symptom } of veryFlexiblePatterns) {
-      for (const word of words) {
-        // Check if word appears anywhere in the text (case insensitive)
-        if (normalizedText.includes(word.toLowerCase()) && !symptomSet.has(symptom)) {
-          foundSymptoms.push(symptom);
-          symptomSet.add(symptom);
-          break;
-        }
-      }
-    }
-  }
-
-  // Advanced condition analysis based on symptom combinations and patterns
-  const conditionScores = new Map();
-  
-  // Define condition patterns with symptom requirements
-  const conditionPatterns = [
-    {
-      name: "Common Cold",
-      required: ["Cough", "Sore throat", "Nasal congestion", "Runny nose", "Sneezing"],
-      optional: ["Fever", "Fatigue", "Headache"],
-      score: 0
-    },
-    {
-      name: "Influenza (Flu)",
-      required: ["Fever", "Cough"],
-      optional: ["Sore throat", "Fatigue", "Body ache", "Chills", "Headache"],
-      score: 0
-    },
-    {
-      name: "Upper Respiratory Infection",
-      required: ["Cough", "Sore throat"],
-      optional: ["Fever", "Nasal congestion", "Runny nose"],
-      score: 0
-    },
-    {
-      name: "Bronchitis",
-      required: ["Cough"],
-      optional: ["Shortness of breath", "Chest pain", "Fatigue", "Fever"],
-      score: 0
-    },
-    {
-      name: "Pneumonia",
-      required: ["Cough", "Fever"],
-      optional: ["Shortness of breath", "Chest pain", "Fatigue", "Chills"],
-      score: 0
-    },
-    {
-      name: "Tension Headache",
-      required: ["Headache"],
-      optional: ["Stress", "Neck pain", "Fatigue"],
-      score: 0
-    },
-    {
-      name: "Migraine",
-      required: ["Headache", "Migraine"],
-      optional: ["Nausea", "Dizziness", "Sensitivity to light"],
-      score: 0
-    },
-    {
-      name: "Gastroenteritis",
-      required: ["Nausea", "Vomiting", "Diarrhea"],
-      optional: ["Abdominal pain", "Fever", "Stomach discomfort"],
-      score: 0
-    },
-    {
-      name: "Food Poisoning",
-      required: ["Nausea", "Vomiting"],
-      optional: ["Diarrhea", "Abdominal pain", "Stomach discomfort", "Fever"],
-      score: 0
-    },
-    {
-      name: "Irritable Bowel Syndrome (IBS)",
-      required: ["Abdominal pain", "Stomach discomfort"],
-      optional: ["Bloating", "Diarrhea", "Constipation"],
-      score: 0
-    },
-    {
-      name: "Asthma",
-      required: ["Shortness of breath", "Wheezing"],
-      optional: ["Cough", "Chest tightness", "Chest pain"],
-      score: 0
-    },
-    {
-      name: "Allergic Rhinitis",
-      required: ["Sneezing", "Runny nose", "Nasal congestion"],
-      optional: ["Itching", "Rash", "Sore throat"],
-      score: 0
-    },
-    {
-      name: "Sinusitis",
-      required: ["Nasal congestion", "Headache"],
-      optional: ["Fever", "Facial pain", "Runny nose", "Fatigue"],
-      score: 0
-    },
-    {
-      name: "Urinary Tract Infection (UTI)",
-      required: ["Pain"],
-      optional: ["Fever", "Fatigue", "Nausea"],
-      score: 0
-    },
-    {
-      name: "Arthritis",
-      required: ["Joint pain"],
-      optional: ["Swelling", "Stiffness", "Fatigue"],
-      score: 0
-    },
-    {
-      name: "Fibromyalgia",
-      required: ["Muscle pain", "Fatigue"],
-      optional: ["Joint pain", "Headache", "Sleep problems"],
-      score: 0
-    },
-    {
-      name: "Anxiety",
-      required: [],
-      optional: ["Chest pain", "Shortness of breath", "Heart palpitations", "Dizziness", "Fatigue"],
-      score: 0
-    },
-    {
-      name: "Depression",
-      required: ["Fatigue"],
-      optional: ["Insomnia", "Loss of appetite", "Weakness"],
-      score: 0
-    },
-    {
-      name: "Skin Allergy",
-      required: ["Rash", "Itching"],
-      optional: ["Hives", "Skin redness", "Swelling"],
-      score: 0
-    },
-    {
-      name: "Dehydration",
-      required: ["Fatigue", "Weakness"],
-      optional: ["Dizziness", "Headache", "Nausea"],
-      score: 0
-    }
-  ];
-
-  // Score each condition based on symptom matches
-  for (const condition of conditionPatterns) {
-    let score = 0;
-    let requiredMatches = 0;
-    
-    // Check required symptoms
-    for (const reqSymptom of condition.required) {
-      if (foundSymptoms.some(s => s.toLowerCase().includes(reqSymptom.toLowerCase()) || reqSymptom.toLowerCase().includes(s.toLowerCase()))) {
-        requiredMatches++;
-        score += 3; // Higher weight for required symptoms
-      }
-    }
-    
-    // Check optional symptoms
-    for (const optSymptom of condition.optional) {
-      if (foundSymptoms.some(s => s.toLowerCase().includes(optSymptom.toLowerCase()) || optSymptom.toLowerCase().includes(s.toLowerCase()))) {
-        score += 1; // Lower weight for optional symptoms
-      }
-    }
-    
-    // Only include conditions that have at least some required symptoms matched
-    if (requiredMatches > 0 || condition.required.length === 0) {
-      conditionScores.set(condition.name, score);
-    }
-  }
-
-  // Sort conditions by score and get top matches
-  const sortedConditions = Array.from(conditionScores.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 7) // Get top 7 conditions
-    .map(([name]) => name);
-
-  const possibleConditions = sortedConditions.length > 0 
-    ? sortedConditions 
-    : foundSymptoms.length > 0 
-      ? ["Health concern requiring evaluation"] 
-      : ["Please describe your symptoms more specifically"];
-
-  // Generate specific, targeted recommendations based on detected symptoms and conditions
-  const recommendations = [];
-  const recSet = new Set();
-  
-  // Condition-specific recommendations
-  if (sortedConditions.length > 0) {
-    const topCondition = sortedConditions[0];
-    
-    if (topCondition.includes("Cold") || topCondition.includes("Flu") || topCondition.includes("Respiratory")) {
-      if (!recSet.has("rest")) {
-        recommendations.push("Get plenty of rest to help your body fight the infection");
-        recSet.add("rest");
-      }
-      if (!recSet.has("fluids")) {
-        recommendations.push("Drink plenty of fluids (water, herbal tea, warm soup) to stay hydrated and thin mucus");
-        recSet.add("fluids");
-      }
-      if (!recSet.has("steam")) {
-        recommendations.push("Use a humidifier or take steam inhalation to relieve nasal congestion");
-        recSet.add("steam");
-      }
-    }
-    
-    if (topCondition.includes("Gastroenteritis") || topCondition.includes("Food Poisoning")) {
-      if (!recSet.has("bland")) {
-        recommendations.push("Follow a BRAT diet (bananas, rice, applesauce, toast) and avoid dairy, spicy, or fatty foods");
-        recSet.add("bland");
-      }
-      if (!recSet.has("rehydration")) {
-        recommendations.push("Drink oral rehydration solutions or electrolyte drinks to prevent dehydration");
-        recSet.add("rehydration");
-      }
-      if (!recSet.has("rest-digestive")) {
-        recommendations.push("Rest your digestive system by eating small, frequent meals");
-        recSet.add("rest-digestive");
-      }
-    }
-    
-    if (topCondition.includes("Headache") || topCondition.includes("Migraine")) {
-      if (!recSet.has("dark-room")) {
-        recommendations.push("Rest in a dark, quiet room and apply a cold or warm compress to your forehead");
-        recSet.add("dark-room");
-      }
-      if (!recSet.has("hydration-headache")) {
-        recommendations.push("Ensure adequate hydration as dehydration can worsen headaches");
-        recSet.add("hydration-headache");
-      }
-      if (!recSet.has("stress-management")) {
-        recommendations.push("Practice stress management techniques like deep breathing or meditation");
-        recSet.add("stress-management");
-      }
-    }
-    
-    if (topCondition.includes("Asthma") || topCondition.includes("Bronchitis")) {
-      if (!recSet.has("inhaler")) {
-        recommendations.push("If you have a prescribed inhaler, use it as directed. Avoid triggers like smoke, dust, and allergens");
-        recSet.add("inhaler");
-      }
-      if (!recSet.has("breathing")) {
-        recommendations.push("Practice pursed-lip breathing to help manage shortness of breath");
-        recSet.add("breathing");
-      }
-    }
-  }
-  
-  // Symptom-specific recommendations
-  if (foundSymptoms.some(s => s.includes("Fever") || s.includes("temperature"))) {
-    if (!recSet.has("fever-monitor")) {
-      recommendations.push("Monitor your temperature every 4-6 hours. If it exceeds 103°F (39.4°C) or persists for more than 3 days, seek medical attention");
-      recSet.add("fever-monitor");
-    }
-    if (!recSet.has("fever-medication")) {
-      recommendations.push("Consider taking acetaminophen or ibuprofen to reduce fever (follow dosage instructions)");
-      recSet.add("fever-medication");
-    }
-  }
-  
-  if (foundSymptoms.some(s => s.includes("Cough"))) {
-    if (!recSet.has("cough-remedy")) {
-      recommendations.push("Use cough drops or honey with warm water/tea to soothe throat irritation. Avoid lying flat if cough worsens at night");
-      recSet.add("cough-remedy");
-    }
-  }
-  
-  if (foundSymptoms.some(s => s.includes("Nausea") || s.includes("Vomiting"))) {
-    if (!recSet.has("nausea-ginger")) {
-      recommendations.push("Try ginger tea or ginger candies to help reduce nausea. Eat small, bland meals");
-      recSet.add("nausea-ginger");
-    }
-  }
-  
-  if (foundSymptoms.some(s => s.includes("Diarrhea"))) {
-    if (!recSet.has("diarrhea-hydration")) {
-      recommendations.push("Drink plenty of clear fluids and electrolyte solutions. Avoid caffeine and alcohol");
-      recSet.add("diarrhea-hydration");
-    }
-  }
-  
-  if (foundSymptoms.some(s => s.includes("Chest pain") || s.includes("Chest tightness"))) {
-    if (!recSet.has("chest-urgent")) {
-      recommendations.push("⚠️ Chest pain requires immediate medical evaluation. If severe or accompanied by difficulty breathing, seek emergency care");
-      recSet.add("chest-urgent");
-    }
-  }
-  
-  if (foundSymptoms.some(s => s.includes("Shortness of breath"))) {
-    if (!recSet.has("breath-urgent")) {
-      recommendations.push("⚠️ Difficulty breathing is a serious symptom. If severe or sudden, seek immediate medical attention");
-      recSet.add("breath-urgent");
-    }
-  }
-  
-  if (foundSymptoms.some(s => s.includes("Rash") || s.includes("Itching"))) {
-    if (!recSet.has("rash-care")) {
-      recommendations.push("Keep the affected area clean and dry. Apply cool compresses and avoid scratching. Consider over-the-counter antihistamines for itching");
-      recSet.add("rash-care");
-    }
-  }
-  
-  // General recommendations (only if not already covered)
-  if (!recSet.has("monitor")) {
-    recommendations.push("Keep a symptom diary noting when symptoms occur, their severity, and any triggers");
-    recSet.add("monitor");
-  }
-  
-  if (!recSet.has("medical-attention")) {
-    if (foundSymptoms.length > 3 || sortedConditions.some(c => c.includes("Pneumonia") || c.includes("Asthma"))) {
-      recommendations.push("⚠️ Given the combination of symptoms, consider consulting a healthcare professional within 24-48 hours");
-    } else {
-      recommendations.push("If symptoms persist for more than 5-7 days, worsen, or new symptoms appear, consult a healthcare professional");
-    }
-    recSet.add("medical-attention");
-  }
-
-  // If no symptoms found, provide helpful feedback
-  let finalSymptoms = foundSymptoms;
-  if (foundSymptoms.length === 0) {
-    // Check if transcript has meaningful content
-    if (transcript.trim().length < 10) {
-      finalSymptoms = ["Please speak for longer and describe your symptoms in detail"];
-    } else {
-      finalSymptoms = [
-        "Unable to detect specific symptoms from the transcript",
-        "Please try describing your symptoms using common terms like: headache, fever, cough, pain, etc.",
-        `Transcript received: "${transcript.substring(0, 100)}${transcript.length > 100 ? '...' : ''}"`
-      ];
-    }
-  }
-
-    const analysisResult = {
-      symptoms: finalSymptoms,
-      possibleConditions: possibleConditions,
-      recommendations: recommendations.length > 0 ? recommendations.slice(0, 8) : [
-        "Please describe your symptoms more specifically",
-        "Try using common symptom words in your language",
-        "If symptoms persist, consult a healthcare professional"
-      ]
+    // Mock voice analysis (replace with actual voice processing)
+    const analysis = {
+      transcript: "Patient reports feeling tired and experiencing headaches for the past week. Also mentions difficulty sleeping and occasional dizziness.",
+      symptoms: ["fatigue", "headaches", "sleep disturbance", "dizziness"],
+      possibleConditions: [
+        { condition: "Stress/Anxiety", probability: 0.75 },
+        { condition: "Migraine", probability: 0.65 },
+        { condition: "Sleep Deprivation", probability: 0.80 }
+      ],
+      recommendations: [
+        "Consider stress management techniques",
+        "Maintain regular sleep schedule",
+        "Stay hydrated and maintain balanced diet",
+        "Consult with primary care physician if symptoms persist"
+      ],
+      urgency: "medium",
+      followUpRequired: true
     };
-    
-    // Save analysis to MongoDB if user is authenticated
-    if (userId) {
-      try {
-        const analysisId = "va_" + Date.now() + "_" + crypto.randomBytes(4).toString("hex");
-        await VoiceAnalysis.create({
-          userId,
-          analysisId,
-          transcript,
-          language: language || "en-US",
-          analysis: analysisResult,
-          createdAt: new Date()
-        });
-      } catch (saveError) {
-        console.error("Error saving voice analysis:", saveError);
-        // Don't fail the request if save fails
-      }
-    }
-    
+
+    const voiceAnalysis = await VoiceAnalysis.create({
+      userId,
+      transcript: analysis.transcript,
+      analysis,
+      audioFileName: req.file.originalname,
+      analysisId: "analysis_" + Date.now(),
+      createdAt: new Date()
+    });
+
     res.json({
-      ...analysisResult,
-      debug: process.env.NODE_ENV === "development" ? {
-        transcriptLength: transcript.length,
-        language: language,
-        hasNonLatinChars: hasNonLatinChars,
-        normalizedText: normalizedText.substring(0, 100)
-      } : undefined
+      success: true,
+      analysis,
+      analysisId: voiceAnalysis.analysisId
     });
   } catch (error) {
     console.error("Error in voice analysis:", error);
@@ -1175,146 +471,42 @@ app.post("/api/voice/analyze", async (req, res) => {
   }
 });
 
-// POST /api/voice/transcribe - Server-side transcription (fallback)
-app.post("/api/voice/transcribe", upload.single("audio"), (req, res) => {
-  // In production, integrate with a speech-to-text service like:
-  // - Google Cloud Speech-to-Text
-  // - Azure Speech Services
-  // - AWS Transcribe
-  // For now, return a message indicating server-side transcription is not implemented
-  res.status(501).json({ 
-    message: "Server-side transcription not implemented. Please use browser speech recognition." 
->>>>>>> local-changes
-  });
-});
-
-// POST /api/voice/save - save voice analysis to user dashboard
-<<<<<<< HEAD
-app.post("/api/voice/save", (req, res) => {
-  const userId = getUserId(req);
-  const { analysisId } = req.body || {};
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
-  res.json({ success: true });
-});
-
-// GET /api/user - get current user (for dashboard welcome)
-app.get("/api/user", (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
-  for (const u of users.values()) {
-    if (u.id === userId) {
-      return res.json({ id: u.id, name: u.name, email: u.email });
-    }
-  }
-  res.status(404).json({ message: "User not found" });
-});
-
-// GET /api/dashboard/metrics
-app.get("/api/dashboard/metrics", (req, res) => {
-  res.json(METRICS);
-});
-
-// GET /api/dashboard/appointments
-app.get("/api/dashboard/appointments", (req, res) => {
-  res.json(APPOINTMENTS);
-=======
-app.post("/api/voice/save", async (req, res) => {
-  try {
-    const userId = await getUserId(req);
-    const { analysisId, transcript, language, analysis } = req.body || {};
-    
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-    if (!analysisId || !transcript || !analysis) {
-      return res.status(400).json({ message: "Analysis ID, transcript, and analysis data required" });
-    }
-    
-    await VoiceAnalysis.create({
-      userId,
-      analysisId,
-      transcript,
-      language: language || "en-US",
-      analysis,
-      createdAt: new Date()
-    });
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error("Error saving voice analysis:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// GET /api/user - get current user (for dashboard welcome)
-app.get("/api/user", async (req, res) => {
-  try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-    
-    const user = await User.findOne({ id: userId });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    res.json({ id: user.id, name: user.name, email: user.email });
-  } catch (error) {
-    console.error("Error fetching user:", error);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-
 // GET /api/dashboard/metrics
 app.get("/api/dashboard/metrics", async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    
-    if (userId) {
-      const metrics = await HealthMetrics.find({ userId })
-        .sort({ recordedAt: -1 })
-        .limit(10)
-        .lean();
-      
-      if (metrics.length > 0) {
-        const formatted = metrics.map(m => ({
-          label: m.label,
-          value: m.value,
-          status: m.status,
-          color: m.color
-        }));
-        return res.json(formatted);
-      }
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
     }
-    
-    // Return default metrics if no user-specific metrics found
-    res.json(METRICS);
+
+    const metrics = await HealthMetrics.find({ userId }).sort({ recordedAt: -1 }).limit(10);
+    res.json(metrics || METRICS);
   } catch (error) {
     console.error("Error fetching metrics:", error);
-    return res.json(METRICS); // Fallback to defaults
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// POST /api/dashboard/metrics - save user metrics
+// POST /api/dashboard/metrics
 app.post("/api/dashboard/metrics", async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-    
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     const { metrics } = req.body || {};
-    if (!metrics || !Array.isArray(metrics)) {
+    if (!Array.isArray(metrics)) {
       return res.status(400).json({ message: "Metrics array required" });
     }
-    
-    // Save each metric
-    for (const metric of metrics) {
-      await HealthMetrics.create({
-        userId,
-        label: metric.label,
-        value: metric.value,
-        status: metric.status,
-        color: metric.color,
-        recordedAt: new Date()
-      });
-    }
-    
+
+    const savedMetrics = await HealthMetrics.create({
+      userId,
+      ...metrics,
+      recordedAt: new Date()
+    });
+
+    console.log("Saving metrics for user:", userId, savedMetrics);
     res.json({ success: true, message: "Metrics saved successfully" });
   } catch (error) {
     console.error("Error saving metrics:", error);
@@ -1325,62 +517,91 @@ app.post("/api/dashboard/metrics", async (req, res) => {
 // GET /api/dashboard/appointments
 app.get("/api/dashboard/appointments", async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    
-    if (userId) {
-      const appointments = await Appointment.find({ userId })
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .lean();
-      
-      if (appointments.length > 0) {
-        const formatted = appointments.map(a => ({
-          title: a.title,
-          date: a.date,
-          time: a.time,
-          doctor: a.doctor
-        }));
-        return res.json(formatted);
-      }
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
     }
-    
-    // Return default appointments if no user-specific appointments found
-    res.json(APPOINTMENTS);
+
+    const appointments = await Appointment.find({ userId }).sort({ date: 1 });
+    res.json(appointments || APPOINTMENTS);
   } catch (error) {
     console.error("Error fetching appointments:", error);
-    return res.json(APPOINTMENTS); // Fallback to defaults
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// POST /api/dashboard/appointments - add user appointment
+// POST /api/dashboard/appointments
 app.post("/api/dashboard/appointments", async (req, res) => {
   try {
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-    
-    const appointment = req.body || {};
-    if (!appointment.title || !appointment.date || !appointment.time || !appointment.doctor) {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const { title, date, time, doctor, notes } = req.body || {};
+    if (!title || !date || !time || !doctor) {
       return res.status(400).json({ message: "Title, date, time, and doctor required" });
     }
-    
-    await Appointment.create({
+
+    const appointment = await Appointment.create({
       userId,
-      title: appointment.title,
-      date: appointment.date,
-      time: appointment.time,
-      doctor: appointment.doctor,
-      notes: appointment.notes,
+      title,
+      date,
+      time,
+      doctor,
+      notes: notes || "",
       createdAt: new Date()
     });
-    
+
+    console.log("Adding appointment for user:", userId, appointment);
     res.json({ success: true, message: "Appointment added successfully" });
   } catch (error) {
     console.error("Error adding appointment:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
->>>>>>> local-changes
 });
 
+// GET /api/dashboard/doctors
+app.get("/api/dashboard/doctors", (req, res) => {
+  res.json(DOCTORS);
+});
+
+// GET /api/user/info
+app.get("/api/user/info", async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const user = await User.findOne({ id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt
+    });
+  } catch (error) {
+    console.error("Error fetching user info:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ 
+    status: "healthy", 
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+  });
+});
+
+// Start server
 app.listen(PORT, () => {
-  console.log(`MediSense API running at http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`MongoDB URI: ${MONGODB_URI}`);
 });
