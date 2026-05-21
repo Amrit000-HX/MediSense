@@ -1,5 +1,33 @@
-node_modules
-.env
+# Dependencies
+node_modules/
+
+# Build
 dist/
+build/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Backup / temp
+*.backup
+package.json.backup
+query
+
+# Test coverage (future)
+coverage/

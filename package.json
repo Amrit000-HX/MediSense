@@ -1,7 +1,35 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "medisense",
+  "description": "AI-powered health companion — medical report analysis, voice symptoms, and multilingual dashboard (React + Express)",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.1",
+  "type": "module",
+  "author": "Amrit (https://github.com/Amrit000-HX)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Amrit000-HX/MediSense.git"
+  },
+  "homepage": "https://github.com/Amrit000-HX/MediSense#readme",
+  "bugs": {
+    "url": "https://github.com/Amrit000-HX/MediSense/issues"
+  },
+  "keywords": [
+    "medisense",
+    "healthcare",
+    "medical-reports",
+    "react",
+    "typescript",
+    "vite",
+    "express",
+    "fullstack",
+    "i18n",
+    "pdf-analysis",
+    "voice-analyzer",
+    "health-tech",
+    "hackathon",
+    "portfolio"
+  ],
   "scripts": {
     "build": "vite build",
     "dev": "vite",
