@@ -5,14 +5,17 @@ node_modules/
 dist/
 build/
 
-# Environment & secrets
+# Environment & secrets — NEVER commit real credentials
 .env
 .env.local
 .env.*.local
+.env.production
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # OS
 .DS_Store
@@ -24,10 +27,14 @@ Thumbs.db
 *.swp
 *.swo
 
-# Backup / temp
+# Backup / temp files — should never be committed
 *.backup
-package.json.backup
+*.backup2
+*.bak
+*.tmp
 query
+push-to-github.bat
+push-to-github.ps1
 
 # Test coverage (future)
 coverage/
